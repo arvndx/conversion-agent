@@ -71,11 +71,6 @@ function DashboardPage() {
           }
         />
 
-        {searchParams.get('justClaimed') === '1' && (
-          <div style={{ background: '#dcfce7', color: '#166534', padding: '10px 24px', fontSize: 13 }}>
-            🎉 You've claimed this profile! Fill it out to start earning your Search Rank Score.
-          </div>
-        )}
         {searchParams.get('justUpgraded') === '1' && (
           <div style={{ background: '#dcfce7', color: '#166534', padding: '10px 24px', fontSize: 13 }}>
             🎉 You're now Pro! Website Health and Listings are unlocked.

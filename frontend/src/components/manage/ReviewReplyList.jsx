@@ -1,19 +1,54 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { replyToReview } from '../../api/dashboard.js'
 import { useAgentUIBridge } from '../../context/AgentUIBridgeContext.jsx'
+
+const ERASE_MS_PER_CHAR = 10
+const TYPE_MS_PER_CHAR = 16
 
 function ReviewRow({ profileId, review, onReplied }) {
   const bridge = useAgentUIBridge()
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
   const [aiFilled, setAiFilled] = useState(false)
+  // Mirrors `draft` so the animation loop always reads the true current text without
+  // needing `draft` in its dependencies (which would restart the effect on every keystroke).
+  const draftRef = useRef('')
+  // Bumped on every new incoming draft so an in-flight animation from a previous
+  // (now-superseded) draft knows to stop, instead of two animations racing each other.
+  const draftGenerationRef = useRef(0)
+
+  function updateDraft(value) {
+    draftRef.current = value
+    setDraft(value)
+  }
 
   useEffect(() => {
     if (!bridge) return
-    return bridge.register('propose_review_reply', (action) => {
-      if (action?.input?.review_id !== review.id) return
-      setDraft(action.input.draft_text || '')
+    // Keyed per review_id — the bridge only holds one handler per key, and with multiple
+    // unreplied reviews on screen at once, a shared 'propose_review_reply' key would have
+    // each row's registration silently overwrite the previous one's.
+    return bridge.register(`propose_review_reply:${review.id}`, (action) => {
+      const newText = action.input.draft_text || ''
+      const generation = ++draftGenerationRef.current
       setAiFilled(true)
+
+      function typeIn(text, i) {
+        if (draftGenerationRef.current !== generation) return
+        updateDraft(text.slice(0, i))
+        if (i < text.length) setTimeout(() => typeIn(text, i + 1), TYPE_MS_PER_CHAR)
+      }
+      function eraseThenType(text, i) {
+        if (draftGenerationRef.current !== generation) return
+        updateDraft(text.slice(0, i))
+        if (i > 0) setTimeout(() => eraseThenType(text, i - 1), ERASE_MS_PER_CHAR)
+        else typeIn(newText, 0)
+      }
+
+      // First draft for this review (box currently empty): just type it straight in. A
+      // redraft replacing existing text: visibly erase the old one first, then type the new
+      // one — makes it obvious this is a fresh draft, not a silent instant swap.
+      if (draftRef.current) eraseThenType(draftRef.current, draftRef.current.length)
+      else typeIn(newText, 0)
     })
   }, [bridge, review.id])
 
@@ -42,7 +77,8 @@ function ReviewRow({ profileId, review, onReplied }) {
       <textarea
         value={draft}
         onChange={(e) => {
-          setDraft(e.target.value)
+          draftGenerationRef.current++ // the user is typing — stop any in-flight redraft animation
+          updateDraft(e.target.value)
           setAiFilled(false)
         }}
         placeholder="Write a reply…"

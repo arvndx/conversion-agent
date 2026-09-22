@@ -125,10 +125,12 @@ function AgentWidget() {
     // no StrictMode double-invoke race to guard against on this branch.
     greetedThisLoad.add(route)
 
-    if (/^\/dashboard\/[^/]+\/manage$/.test(route)) {
-      // Manage is where every score-affecting lever lives — start the tour immediately
-      // instead of asking, since that's the whole reason to land here. startTour() itself
-      // opens the panel, so the user sees the narration alongside the highlight.
+    const justClaimed = new URLSearchParams(location.search).get('justClaimed') === '1'
+    if (/^\/dashboard\/[^/]+\/manage$/.test(route) && justClaimed) {
+      // Only auto-start (no offer) the moment right after claiming — Manage is where every
+      // score-affecting lever lives, and someone who just finished the whole claim form
+      // shouldn't also have to click "Sure" on an offer. Any other visit to Manage falls
+      // through to the same offer-popup treatment as Dashboard/Profile below.
       startTour()
       return
     }
@@ -279,6 +281,12 @@ function AgentWidget() {
       } else if (action.type === 'confirm_website_url' || action.type === 'present_candidate_matches' || action.type === 'propose_field_updates') {
         // Claim-assist-only UI actions — handled entirely by the dedicated /claim/:id/details
         // page itself now, which this widget never mounts on. Nothing to do here.
+      } else if (action.type === 'propose_review_reply' && action.input?.review_id) {
+        // The bridge is a single handler slot per key — with multiple unreplied reviews on
+        // screen, every ReviewRow would register under the same literal 'propose_review_reply'
+        // key and silently overwrite each other, so only the last-mounted row ever received
+        // updates. Routing by a per-review key fixes that structurally.
+        bridge?.call(`propose_review_reply:${action.input.review_id}`, action)
       } else {
         bridge?.call(action.type, action)
       }

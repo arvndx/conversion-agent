@@ -498,7 +498,11 @@ function ClaimDetailsPage() {
       await submitClaimDetails(id, form)
       setPhase('done')
       setCelebrateTrigger((n) => n + 1)
-      setTimeout(() => navigate(`/dashboard/${id}?justClaimed=1`), 2600)
+      // Land straight on Manage (not Dashboard first) — that's where every score-affecting
+      // lever actually lives, and justClaimed=1 is what tells the widget to auto-start the
+      // tour immediately here, rather than making someone who just finished a form click
+      // "Sure" on an offer too.
+      setTimeout(() => navigate(`/dashboard/${id}/manage?justClaimed=1`), 2600)
     } catch {
       setSubmitError('Could not complete your claim. Please check the required fields and try again.')
     }
