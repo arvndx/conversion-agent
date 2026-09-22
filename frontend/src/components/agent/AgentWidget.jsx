@@ -56,6 +56,30 @@ function AgentWidget() {
     if (hidden) setOpen(false)
   }, [hidden])
 
+  // This widget is mounted once at the app level and never unmounts on a client-side route
+  // change (e.g. switching profiles via the "Viewing as" dropdown, no page reload) — without
+  // this, every profile's conversation would just keep piling into the same message list.
+  // Declared before the greeting effect below so, on the same profile switch, state is
+  // cleared first and the fresh greeting lands in an empty list, not appended to the old one.
+  // Guarded by a ref (not just the dependency array) for the same reason greetedThisLoad is
+  // module state: React's dev-mode StrictMode double-invokes effects once on mount, and
+  // without this guard the second invocation would wipe out the tour-offer/greeting the
+  // first invocation had just added, since state itself isn't torn down between the two.
+  const resetForProfileIdRef = useRef(null)
+  useEffect(() => {
+    if (resetForProfileIdRef.current === profileId) return
+    resetForProfileIdRef.current = profileId
+    setMessages([])
+    setTourProgress(null)
+    setTourSteps(null)
+    setTourIndex(0)
+    setSpotlight(null)
+    setDoubtOpen(false)
+    setPopup(null)
+    setHasUnread(false)
+    setPreparingTour(false)
+  }, [profileId])
+
   function showTextPopup(text) {
     clearTimeout(popupTimerRef.current)
     setPopup({ kind: 'text', text })
