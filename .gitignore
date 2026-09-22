@@ -1,0 +1,8 @@
+backend/.venv/
+backend/clearrank.db
+backend/.env
+backend/__pycache__/
+backend/**/__pycache__/
+frontend/node_modules/
+frontend/dist/
+.claude/

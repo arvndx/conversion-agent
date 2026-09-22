@@ -1,0 +1,14 @@
+:root {
+  --brand: #5b3df5;
+  --brand-dark: #4527d1;
+  --ink: #1f2430;
+  --ink-soft: #5b6472;
+  --border: #e4e6ea;
+  --surface: #ffffff;
+  --surface-muted: #f5f6f8;
+  --success: #16a34a;
+  --warning: #f97316;
+  --danger: #dc2626;
+  --pro-badge: #ff6a3d;
+  --radius: 10px;
+}

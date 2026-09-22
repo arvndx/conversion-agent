@@ -1,0 +1,96 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: #1f2430;
+  background: #f5f6f8;
+}
+
+a {
+  color: inherit;
+}
+
+@keyframes agent-panel-slide-in {
+  from { transform: translateX(24px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes agent-popup-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Shared "attractive chat panel" styling — used by the floating AgentWidget and any other
+   docked chat surface. Hover/focus states need real CSS (inline styles can't express them). */
+.agent-input {
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  padding: 9px 15px;
+  font-size: 13.5px;
+  font-family: inherit;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.agent-input:hover { border-color: #c7c9f5; }
+.agent-input:focus { border-color: var(--brand); box-shadow: 0 0 0 3.5px rgba(99, 91, 255, 0.13); }
+
+.agent-send-btn {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c5cff, var(--brand));
+  color: #fff;
+  border: none;
+  font-size: 15px;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+  box-shadow: 0 2px 8px rgba(99, 91, 255, 0.32);
+}
+.agent-send-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(99, 91, 255, 0.4); }
+.agent-send-btn:disabled { opacity: 0.45; cursor: default; transform: none; box-shadow: none; }
+
+.agent-btn-primary {
+  background: linear-gradient(135deg, #7c5cff, var(--brand));
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+  box-shadow: 0 2px 6px rgba(99, 91, 255, 0.3);
+}
+.agent-btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(99, 91, 255, 0.38); }
+.agent-btn-primary:disabled { opacity: 0.5; cursor: default; transform: none; }
+
+.agent-btn-secondary {
+  background: #fff;
+  color: var(--ink);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.agent-btn-secondary:hover:not(:disabled) { border-color: var(--brand); background: #faf9ff; }
+
+.agent-chip {
+  border: 1.5px solid var(--border);
+  background: #fff;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease, transform 0.12s ease;
+}
+.agent-chip:hover { border-color: var(--brand); background: #faf9ff; transform: translateY(-1px); }
