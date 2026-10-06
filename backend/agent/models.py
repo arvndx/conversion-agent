@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from sqlalchemy import Column, JSON
+from sqlalchemy import Column
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
 
@@ -22,29 +23,22 @@ class AgentConversation(SQLModel, table=True):
     doubt_attempts: int = 0
     awaiting_handoff_resolution: bool = False
 
-
-class AgentMessage(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    conversation_id: int = Field(foreign_key="agentconversation.id", index=True)
-    sequence_index: int
-    role: str  # user | assistant
-    kind: str = "turn"  # turn | tool_results | auto_greeting
-    content: list[dict] = Field(sa_column=Column(JSON))
-    stop_reason: str | None = None
-    model: str | None = None
-    input_tokens: int | None = None
-    output_tokens: int | None = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    # Consent for paid actions (see tools/upgrade_tools.py): the app counts the user's turns, and an
+    # upgrade or trial only goes through when it was proposed (price stated) in an EARLIER turn.
+    turn_count: int = 0
+    pending_action: str | None = None  # "upgrade" | "trial"
+    pending_turn: int = 0
 
 
 class AgentToolInvocation(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     conversation_id: int = Field(foreign_key="agentconversation.id", index=True)
-    message_id: int = Field(foreign_key="agentmessage.id")
+    # Conversation history now lives in the LangGraph checkpointer (agent/graph.py); this table is
+    # only the per-call audit log (tool, input, result, latency).
     tool_name: str
     tool_use_id: str
-    input: dict = Field(sa_column=Column(JSON))
-    result: dict = Field(sa_column=Column(JSON))
+    input: dict = Field(sa_column=Column(JSONB))
+    result: dict = Field(sa_column=Column(JSONB))
     is_error: bool = False
     latency_ms: int = 0
     created_at: datetime = Field(default_factory=datetime.utcnow)

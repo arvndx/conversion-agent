@@ -8,18 +8,15 @@ const CHECKS = [
 function AnalyticsReadout({ isPro, websiteUrl, websiteAudit }) {
   if (!isPro) {
     return (
-      <div style={{ background: 'var(--surface-muted)', borderRadius: 8, padding: 16, color: 'var(--ink-soft)', fontSize: 13 }}>
-        🔒 Upgrade to Pro to unlock your Website Health audit.
+      <div className="locked-note">
+        <span style={{ fontSize: 22 }}>🔒</span>
+        <span>Upgrade to Pro to unlock your Website Health audit.</span>
       </div>
     )
   }
 
   if (!websiteUrl) {
-    return (
-      <div style={{ background: 'var(--surface-muted)', borderRadius: 8, padding: 16, color: 'var(--ink-soft)', fontSize: 13 }}>
-        Add your website URL in Profile Details above to get a health audit.
-      </div>
-    )
+    return <div className="empty-note">Add your website URL in Profile Details above to get a health audit.</div>
   }
 
   const audit = websiteAudit || {}
@@ -28,21 +25,20 @@ function AnalyticsReadout({ isPro, websiteUrl, websiteAudit }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
-        <span style={{ fontWeight: 700, fontSize: 20 }}>{loadTimeMs != null ? `${loadTimeMs}ms` : '—'}</span>
-        <span style={{ fontSize: 12, color: loadTimeOk ? 'var(--success)' : '#b45309' }}>
-          {loadTimeOk ? '✓ Fast load time' : '⚠ Slow load time (target: under 2.5s)'}
+      <div className="metric">
+        <b>{loadTimeMs != null ? `${loadTimeMs}ms` : '—'}</b>
+        <span style={{ color: loadTimeOk ? 'var(--success)' : '#b45309' }}>
+          <small>{loadTimeOk ? '✓ Fast load time' : '⚠ Slow load time (target: under 2.5s)'}</small>
         </span>
       </div>
-      <div>
+      <div className="check-grid">
         {CHECKS.map(({ key, label }) => {
           const passed = Boolean(audit[key])
           return (
-            <div key={key} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
-              <span style={{ fontSize: 13 }}>{label}</span>
-              <span style={{ fontSize: 13, color: passed ? 'var(--success)' : '#b45309', fontWeight: 600 }}>
-                {passed ? '✓ Pass' : '⚠ Needs work'}
-              </span>
+            <div key={key} className={`check ${passed ? 'check--ok' : 'check--bad'}`}>
+              <i>{passed ? '✓' : '!'}</i>
+              <span style={{ flex: 1 }}>{label}</span>
+              <small style={{ color: passed ? 'var(--success)' : '#b45309', fontWeight: 700 }}>{passed ? 'Pass' : 'Needs work'}</small>
             </div>
           )
         })}

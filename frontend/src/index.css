@@ -6,7 +6,7 @@ body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   color: #1f2430;
-  background: #f5f6f8;
+  background: var(--bg);
 }
 
 a {
@@ -94,3 +94,28 @@ a {
   transition: border-color 0.12s ease, background 0.12s ease, transform 0.12s ease;
 }
 .agent-chip:hover { border-color: var(--brand); background: #faf9ff; transform: translateY(-1px); }
+
+/* Narrow screens: the search page and the mailbox stack their columns (the map and filters go full width, and the
+   map no longer sits on top of the result cards). */
+@media (max-width: 860px) {
+  .search-layout { flex-direction: column; padding-left: 12px !important; padding-right: 12px !important; }
+  .search-filters { width: 100% !important; }
+  .search-map { position: relative !important; top: auto !important; width: 100% !important; height: 260px !important; order: 3; }
+  .mailbox-layout { flex-direction: column; align-items: stretch !important; }
+  .mailbox-list { width: 100% !important; }
+}
+
+/* Result cards on a phone: the score drops under the details instead of squeezing the Claim button. */
+@media (max-width: 560px) {
+  .result-card { flex-wrap: wrap; }
+  .result-card .result-score { width: 100%; text-align: left !important; display: flex; gap: 8px; align-items: baseline; }
+}
+
+/* Owner pages (dashboard, manage, upgrade) on a phone: the sidebar goes away, the two columns stack, and the
+   page can shrink below its content width. */
+@media (max-width: 860px) {
+  .app-sidebar { display: none; }
+  .owner-shell > div { min-width: 0; }
+  .owner-grid { grid-template-columns: minmax(0, 1fr) !important; padding-left: 12px !important; padding-right: 12px !important; }
+  .owner-grid > * { min-width: 0; }
+}

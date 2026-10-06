@@ -1,366 +1,247 @@
-# Plan: "ClearRank" prototype — a minimal demo scaffold whose real purpose is the conversion agent
+# ClearRank — project plan
 
-## Context
+[README.md](README.md) covers setup and day-to-day use; [backend/agent/README.md](backend/agent/README.md) covers
+the agent. This file records what was decided, what was built and what is still open.
 
-This supersedes the earlier draft of this plan. Two things changed after review:
+**Source of truth: [core1.txt](core1.txt)** (the product idea). [process1.mov](process1.mov) and
+[process1.txt](process1.txt) are UI reference only (the Nora demo); `existing_backend.md`,
+`existing_frontend.md` and `target_process.md` are background. Where they disagree with `core1.txt`
+(OAuth sign-in, graph, competition, work agreement, Focus), `core1.txt` wins and those stay out.
 
-1. **The scaffold itself doesn't matter — the conversion agent is the actual point.** Your real goal is to build agents that make a *real* visitor interactive and walk them from unclaimed → claimed → pro. Everything else (search page, profile pages, dashboard) only exists to give that agent something to act on. So this plan now deliberately minimizes the scaffold and puts the design effort into the agent.
-2. **Radically simplified infra, since this is a throwaway demo, not a product:** FastAPI (not Django), SQLite (not Postgres), no authentication/authorization at all, no Celery, and exactly 5 fixed dummy profiles (3 unclaimed, 1 claimed, 1 pro) instead of generated bulk data. A separate "mock inbox" page replaces real email entirely.
+## What the product does (core1.txt)
 
-**Why no Celery:** Celery exists to keep slow/background work off the request path — async email sending, recomputing scores across many rows, scheduled jobs. None of that applies here: there's no real email (the mock inbox page replaces it), and recomputing a score for 5 rows is microseconds. It would be pure overhead. If you ever want fire-and-forget behavior later, FastAPI's built-in `BackgroundTasks` covers it with no extra infrastructure.
+ClearRank is a local-business directory with a Search Rank Score (SRS), where **Profile Pilot**, an embedded
+agent, drives three processes from a per-category rules table in Postgres:
 
-**Why no auth:** you asked for none, explicitly. Concretely this means: claiming a profile requires no password, and the "manage profile" page is just a plain, unprotected route (`/profile/{id}/manage`) — anyone with the link can view/edit it. That's fine for a local, single-user demo; call it out again before this goes anywhere public.
+1. **Claiming.** From a search result ("Claim now") or the header's "Claim a profile" for someone not in the
+   database. A card with name, email, vertical, category, services and phone; the name can be edited and
+   *either* phone *or* email (not both); vertical → category → multi-select services; a 6-digit code goes to
+   that person's mock mailbox; entering it claims the profile and signs them in.
+2. **Onboarding.** The owner confirms known URLs (or the agent searches by name + title + company, or they add
+   URLs by hand); all confirmed URLs are read in parallel; each page must show the person's name; conflicts are
+   resolved at the end (license, address, other fields); AI-drafted specialities and description, default
+   business hours; the result is written to the profile.
+3. **SRS.** The score and market rank, point-valued steps (reply to a review, fill a missing field, connect a
+   platform), a real before/after Pro preview, then the guided tour.
 
-**Conversion agent = both, per your answer:** a scripted, deterministic guided tour (tooltips/highlights) drives the default path through claim → pro, **plus** an AI chat widget (Claude-powered) available throughout for the visitor to ask questions, grounded in that profile's real, live score/rank data.
+## Roadmap (all phases done)
 
-**Why one table (plus one small log table):** you asked for a single/minimum table holding all basic details for this process. Below is a consolidated `profiles` table using a few JSON columns for the flexible sub-data (reviews, connections, listing, analytics) instead of separate child tables. One note on provenance: I didn't carry any field names from the schema you pasted alongside this request into this design — it's original and sized to exactly what a 5-row demo needs, for the same decoupling reason noted above.
+- [x] 0. Plan recorded here.
+- [x] 1. **Taxonomy + data model.** Verticals, categories, services, per-category score sections, profile links,
+      scraped sources, conflicts, claims, OTP codes, sessions; `enterprise` status; schema dropped and recreated
+      on every reset (no Alembic).
+- [x] 2. **Data-driven scoring.** `app/scoring.py` reads each category's sections and field weights from tables;
+      the hard-coded 5 sections / 500 / 850 are gone.
+- [x] 3. **Demo data.** The 8 demo professionals (ids 39–46, two per core1 category, public details only,
+      synthetic `@demo.clearrank.test` emails), 24 clearly fake peers per demo market so rank means something,
+      the original 38 dentists kept as a fifth category.
+- [x] 4. **Auth + claim.** Email-OTP sign-in, HttpOnly session cookie, owner routes return 401/403, per-person
+      mailbox pages, keyword search, claim card, "Claim a profile". Nothing is applied until the code is verified.
+- [x] 5. **Scraper** (`backend/app/scraping/`, live inside the backend, no Airflow). Plain request → headless
+      browser through the Oxylabs proxy → proxied render request (`X-Oxylabs-Render`). SSRF checks, sign-in
+      screens reported as blocked, name validation, and a website audit read off the page. Oxylabs verified:
+      AnnieMac (Cloudflare) loads through `proxy-browser`.
+- [x] 6. **Onboarding service + agent tools + `/api/onboarding/*`** (`app/onboarding.py`,
+      `agent/tools/onboarding_tools.py`, `agent/extraction.py`). Gates enforced in code (below).
+- [x] 7. **Onboarding screens** (`routes/OnboardingPage.jsx`, `components/onboarding/`): URL cards, manual adder,
+      live reading progress, "is this you?" cards, license / address / pick-one conflict cards, field review with
+      the agent's drafts, done screen; next to a docked agent chat.
+- [x] 8. **Process 3** (`app/improvement.py`): every step that would raise the score with its exact points, the
+      real Pro before/after score and rank, shown on the done screen and spoken by the agent; the tour adapts
+      to the category. Confirmed URLs now count toward Connections and Listings.
+- [x] 9. **Tests + docs.** 179 pytest tests; an end-to-end browser pass over every flow (below); agent scenarios for onboarding and the post-onboarding plan; this
+      file, the README and the agent README brought up to date.
 
----
+## Decisions
 
-## Stack
-
-- **Backend:** FastAPI + SQLModel (SQLAlchemy + Pydantic in one, pairs naturally with FastAPI) + SQLite (`clearrank.db`, a single file — easy to reset between demos).
-- **Frontend:** Jinja2 server-rendered templates + vanilla JS (no build step, no React) — matches "the application isn't important." Two small JS libraries via CDN: **driver.js** for the scripted guided tour, and a hand-rolled ~100-line chat widget for the AI agent (no framework needed for a single floating chat box).
-- **AI agent:** Anthropic API (`anthropic` Python SDK), model `claude-sonnet-5` (swap to `claude-haiku-4-5-20251001` if you want faster/cheaper responses — quality difference is unlikely to matter much for this). Requires an `ANTHROPIC_API_KEY` environment variable.
-- **No auth, no Celery, no Postgres, no Docker** — a single `uvicorn` process and a SQLite file is the entire runtime.
-
----
-
-## Data & scoring (unchanged business rules, simplified implementation)
-
-Still the 5-category, 0–850 Search Rank Score: Reviews & Replies (300), Profile Completion (100), Connections (100) — earnable once claimed — plus Web Analytics (250) and Listings (100), pro-only. Claimed caps at 500, pro caps at 850.
-
-Instead of the earlier normalized "config + computed" table design (overkill for 5 rows), scoring is just plain Python functions in `scoring.py`:
-```
-compute_reviews_score(profile) -> (points, [opportunity notes])
-compute_profile_completion_score(profile) -> (points, [opportunity notes])
-compute_connections_score(profile) -> (points, [opportunity notes])
-compute_web_analytics_score(profile) -> (points, [opportunity notes])   # always computed, even pre-pro
-compute_listings_score(profile) -> (points, [opportunity notes])       # always computed, even pre-pro
-compute_total_score(profile) -> {total, max_possible, categories: {...earned, max, locked, opportunities}}
-```
-Same honesty rule as before: web_analytics/listings are always computed even for a claimed (non-pro) profile — just excluded from the total and shown "locked" — so "upgrading unlocks exactly N points" is always a real number pulled live, never a hardcoded marketing claim. `recompute_and_save_score(profile)` writes the denormalized `search_rank_score` column (used for sort order) and is called synchronously after every mutation — trivial cost at 5 rows.
-
-**5 fixed seed profiles, same category + location** (e.g. all "Dentist, Austin TX") so the search results page directly demonstrates ranking competition, which is the whole product's premise:
-1. **Pro** — "Dr. Sarah Chen": fully filled out (phone, license, website, bio), several replied 5-star reviews, connections made, listing published, solid analytics → scores near the top (~800/850).
-2. **Claimed** — "Dr. Michael Torres": has phone/bio but missing license/website, a couple of unreplied reviews, only 1 connection → deliberately mid-low within its 500 cap (~260/500) — room to visibly grow even before Pro is on the table.
-3–5. **Unclaimed** — "Dr. Amara Okafor," "Dr. James Whitfield," "Dr. Linda Park": minimal scraped-looking data only (name, category, location, email), score locked at 0. They still show up in search (per your original spec — scraping alone gets you listed), just ranked last — which is itself the hook: *listed, but invisible.*
-
-Ranking result: Pro (800) > Claimed (260) > three Unclaimed (0, 0, 0) — a clean, legible demo of "claim to get on the board, upgrade to pull ahead."
-
-Seeding is idempotent (drop-and-recreate the 5 rows), exposed later via a `/reset-demo` route so you can replay the demo repeatedly without manually resetting the DB.
-
----
-
-## The conversion agent (the actual point of this build)
-
-**Scripted guided tour (driver.js), auto-triggered at each lifecycle transition via a query-param flag set on redirect:**
-- *On an unclaimed profile page:* highlight the profile info → highlight "Search Rank Score: 0 — not ranking" → highlight the "Claim this profile" button, explaining what claiming unlocks.
-- *On the mock inbox, right after clicking "Claim this profile":* highlight the new email → highlight the claim link inside it.
-- *On the manage page, right after claiming (`?justClaimed=1`):* highlight the live score breakdown → highlight the two locked categories → highlight "Upgrade to Pro," explaining what it unlocks.
-- *On the manage page, right after upgrading (`?justUpgraded=1`):* celebrate the unlocked categories and the new total → link back to the public search page to see the improved rank in place.
-A persistent "Take the tour" button allows manually replaying any sequence.
-
-**AI chat widget, available on profile + manage pages:** a small floating bubble. `POST /api/chat` takes `{profile_id, message, history}`; the server re-fetches that profile's *live* `compute_total_score()` output and lifecycle state on every call and builds a fresh system prompt around it (e.g. "This visitor is looking at an unclaimed profile with 0 score... if claimed, they could earn up to 500... reviews are unreplied... etc."), instructing Claude to act as a friendly, honest growth assistant — nudge toward the next lifecycle step, but never state a number that isn't in the live data it was just given. No server-side session: the browser holds the transcript (a JS array / localStorage) and resends it each turn, consistent with "no auth."
-
----
-
-## Build roadmap
-
-| Phase | Goal |
+| Topic | Decision |
 |---|---|
-| 0 | FastAPI + SQLite scaffold, base template, driver.js included |
-| 1 | Models, scoring functions, idempotent seed script (5 fixed profiles) |
-| 2 | Public search page + profile detail pages |
-| 3 | Mock email inbox + claim flow (no auth) |
-| 4 | Manage page: edit profile, score breakdown, mock Pro upgrade |
-| 5 | **Conversion agent: guided tour + AI chat widget** (flagship phase) |
-| 6 | Polish: `/reset-demo` route, light styling pass |
+| Scope | `core1.txt` only: no graph, competition/map scan, battle plan, work agreement, Focus |
+| Login | Email-OTP sign-in + signed HttpOnly session cookie |
+| OTP delivery | Mock mailbox, one page per person (`/mailbox/<email>`) |
+| Scraping | Live: Oxylabs proxy (`OXYLAB_USER/PASSWORD/HOST/PORT`, as the v2-gamification job) + Playwright + BeautifulSoup + markdownify |
+| Seed | Dentists kept as a fifth category; 8 demo profiles (2 per core1 category) + clearly fake peers per market |
+| Category prefill | Pre-select vertical only; the owner picks category (single) and services (multi) |
+| `enterprise` | Pro benefits, set by seed/admin only, no slot limit, no purchase path |
+| Reviews | **Not scraped for now (owner decision, Oct 2026).** Reviews & Replies uses the profile's existing reviews. Later: Google Places API (max 5 reviews per place) or a connected Google Business Profile |
+| Orchestration | Fully agent-driven LangGraph tool loop; gates enforced in code, not in the prompt |
+| Guard rails | Category `rules` JSON holds only what core1 states |
+| Score mapping | Social/Google URLs → Connections; category directory URLs → Listings; formulas unchanged |
+| Schema changes | Drop and recreate on every reset; `RESET_ON_STARTUP` defaults to true |
 
----
+## Search Rank Score
 
-## How to use this
+The split is data, per category (`category_score_sections`); the formulas live in `app/scoring.py`.
 
-1. New empty directory, fresh agent session rooted there.
-2. Paste **Product Overview** once, then each **Phase N** prompt in order — verify each phase's "Definition of done" before moving on.
-3. You'll need an `ANTHROPIC_API_KEY` before Phase 5.
-4. Find/replace "ClearRank" with your real name if you want.
+| Category | Common | Pro-locked | Max |
+|---|---|---|---|
+| Mortgage Loan Officer, Mortgage Lender, Real Estate Agent | Reviews 300 + Profile Completion 100 + Connections 100 = 500 | Website Health 250 + Listings 100 | 850 |
+| Insurance Agent | the same + **Listings 100** = 600 | Website Health 250 | 850 |
+| Dentist (assumed, core1 gives none) | as mortgage | as mortgage | 850 |
 
----
+- **Reviews & Replies:** volume (to 10) + average rating + reply rate, 100 each, scaled to the section max.
+- **Profile Completion:** share of the category's basic fields filled, weighted per field (equal by default;
+  the weights are in `categories.basic_fields` and can be tuned).
+- **Connections:** share of the category's social/Google URL slots connected. **Listings:** share of its
+  directory slots (Zillow, LendingTree, Realtor.com, Homes.com, Trusted Choice, Yelp, ...) published.
+- **Website Health:** five checks on the person's own site (meta description, mobile viewport, load time,
+  contact details, opening hours), 50 each.
 
-## Copy-paste prompts
+Locked sections are still computed, so "unlocking Pro adds N points" is always a real number.
+`simulate_total_score` scores a hypothetical copy of a profile; the what-if tool, the nudge emails, the
+suggestion badges, the improvement plan, the tour data and the Pro preview all share it.
 
-### Product Overview (paste once, first)
+## Onboarding design
 
-```
-We're building ClearRank, a tiny demo prototype of a reputation/listing platform
-for service professionals. The real goal of this build is NOT the CRUD app - it's
-a "conversion agent" feature that interactively walks a real visitor through a
-profile lifecycle. The rest of the app is minimal scaffolding to support that.
+State lives in the database (`profile_sources`, `profile_links`, `profile_conflicts`); `app/onboarding.py` owns
+the rules, and the REST routes only record the owner's decisions. Scraping and merging have no route: only the
+agent's tools start them.
 
-Lifecycle: unclaimed (scraped/seeded, publicly listed, score locked at 0) ->
-claimed (verified ownership via a MOCK email flow - no real email, no auth/login
-at all) -> pro (mocked "upgrade" toggle, no real payment).
+- Only URLs the owner confirmed are ever read. A page's data is used only once the person's full name is on it
+  (otherwise `needs_identity`, until they say it is theirs). Verified details (name, email, phone, vertical,
+  category, services) are never overwritten. Differing values become conflicts the owner resolves; completion
+  is refused while anything is pending. Scraped text is cleaned (tags stripped, length-capped).
+- A confirmed social/Google page marks that Connection as connected; a confirmed directory page marks that
+  Listing as published (only ever switched on). A page the owner rejects stops counting.
+- The website the owner kept supplies the Website Health audit (read from that page; load time only when the
+  page came back from a plain request).
+- The agent's tool-call loop is capped (`AGENT_MAX_TOOL_ROUNDS`, default 6); the onboarding greeting is idempotent.
 
-Search Rank Score: 0-850, five categories: Reviews & Replies (300), Profile
-Completion (100), Connections (100) - earnable once claimed - plus Web Analytics
-(250) and Listings (100), pro-only. Claimed caps at 500, pro caps at 850. A
-locked (pro-only) category should still be computed live even for a claimed
-profile - just excluded from the total - so "upgrading unlocks N points" is
-always a real, live number, never a hardcoded claim.
+## Process 3 (after onboarding)
 
-Exactly 5 fixed dummy profiles, all the same category+location so they compete
-in the same search results: 3 unclaimed (score 0), 1 claimed (mid score, room to
-grow), 1 pro (near-max score). No bulk/random data generation needed.
+`GET /api/profiles/{id}/improvement-plan` and the agent tool `get_improvement_plan` return every step that would
+raise the score, biggest first, each with its exact points (reply to a review, fill a missing field, connect a
+platform, publish a listing when it is not Pro-locked) and the real Pro before/after (score, market rank, what it
+unlocks, remaining Pro slots). The done screen shows them; the agent, in one message after `complete_onboarding`,
+gives the score and rank, the top steps with their points and the Pro case, then offers the tour. The Manage page
+lists the category's scored fields so each step has somewhere to be done.
 
-Stack: FastAPI + SQLModel + SQLite (single file). Jinja2 templates + vanilla JS,
-no frontend framework, no build step. NO authentication/authorization anywhere -
-routes like the profile "manage" page are plain, unprotected URLs. NO Celery -
-compute everything synchronously, it's 5 rows. A "mock inbox" page replaces real
-email entirely - claim emails are just DB rows rendered as a fake inbox UI. Data
-model is deliberately just one `profiles` table (JSON columns for reviews,
-connections, listing, analytics - not child tables) plus one small
-`mock_emails` log table. Nothing else.
-
-The flagship feature: a conversion agent with two parts - (1) a scripted,
-deterministic guided tour (driver.js) that auto-highlights the next action at
-each lifecycle transition, and (2) an AI chat widget (Anthropic Claude API) on
-profile/manage pages that a visitor can ask questions to, grounded in that
-profile's real live score data, nudging them toward the next lifecycle step
-honestly (never inventing numbers).
-
-We'll build this in phases; I'll give you one phase at a time. Confirm you
-understand, then wait for Phase 0.
-```
-
-### Phase 0 — Scaffolding
+## Architecture
 
 ```
-Phase 0: FastAPI + SQLite scaffold for ClearRank.
-
-- FastAPI app, SQLModel against a local SQLite file (clearrank.db).
-- Jinja2Templates for server-rendered pages, a static/ folder for CSS/JS.
-- Base template with a simple nav (Search, Mock Inbox), driver.js included via
-  CDN <script> tag in the base template (don't wire up any tour steps yet -
-  that's Phase 5).
-- A health-check route (GET /health).
-
-Definition of done: `uvicorn main:app --reload` boots, a bare page renders with
-the nav and driver.js loaded (check browser console for no errors).
+backend/
+  app/      the product: models, scoring, improvement, onboarding, claims, auth, slots, pricing, routers/*
+    scraping/   fetch (ladder + Oxylabs), parse, validate, audit, runner, safety, cli
+  agent/    Profile Pilot, isolated from app/ (only app/main.py wires them together)
+  tests/    pytest, against a separate database
+frontend/
+  src/routes/            Search, ProfileDetail, SignIn, Mailbox, Onboarding, Dashboard, Manage, Pricing
+  src/components/        agent (widget, tour), pilot (assistant look), claim (claim card), onboarding (scenes)
 ```
 
-### Phase 1 — Models, scoring, seed data
+**Stack:** FastAPI + SQLModel + PostgreSQL 15 (psycopg 3, JSONB); LangGraph 1.2 `StateGraph` (model ⇄ tools) on
+`langchain-anthropic` with a Postgres checkpointer and optional Langfuse; Claude's hosted `web_search`;
+Playwright + httpx + BeautifulSoup + markdownify; React 19, React Router 7, Vite; Leaflet maps; one Docker image.
 
-```
-Phase 1: data models, scoring engine, and fixed seed data for ClearRank.
+**Data model:** `Profile` (wide, JSON columns for reviews, connections, directory listings, website audit) plus
+`Vertical`, `Category` (+ services, score sections, URL slots, rules), `ProfileLink`, `ProfileSource`,
+`ProfileConflict`, `Claim`, `OtpCode`, `AuthSession`, `MockEmail`, `ScoreSnapshot`, `ProSlotWaitlist`,
+`MarketEvent`, `ExecutiveHandoffRequest`, and the agent tables `AgentConversation` and `AgentToolInvocation`.
+History lives in the LangGraph checkpointer.
 
-Models (SQLModel) - deliberately just ONE main table plus one small log table,
-no foreign-key child tables at all:
+**Seed (deterministic, 238 profiles):** 38 dentists in four markets (San Francisco has all five Pro slots taken:
+the "full market" case), the 8 demo professionals (unclaimed, with only their public basics and profile URLs),
+and 24 fake peers (`@example.test`, including enterprise) in each demo market. Seeded claimed / Pro / enterprise
+accounts count as already onboarded; a profile claimed at run time starts onboarding.
 
-- Profile (the single table holding all basic details for this process): id,
-  name, category, location, email, lifecycle_state (unclaimed/claimed/pro),
-  phone_number (nullable), license_number (nullable), website_url (nullable),
-  bio (nullable), search_rank_score (int, default 0), created_at, updated_at -
-  plus these JSON columns holding everything else instead of separate tables:
-    - reviews: JSON list of {reviewer_name, rating (1-5), body, reply
-      (nullable - null means unreplied)}
-    - connections: JSON list of {platform_name, is_connected (bool)}
-    - listing: JSON object {business_name, address, is_published (bool)}
-    - analytics: JSON object {profile_views, search_impressions,
-      website_clicks} (only meaningfully populated for the pro profile)
-  Default every JSON column to an empty list/dict, never null, so scoring code
-  never has to null-check them.
-- MockEmail (kept separate - it's a log of outbound messages, not a profile
-  detail): id, to_email, subject, body_html, profile_id FK, created_at,
-  is_opened (bool).
+## Profile Pilot (the agent)
 
-scoring.py - plain functions, no ORM tables for score data:
-- compute_reviews_score, compute_profile_completion_score,
-  compute_connections_score, compute_web_analytics_score,
-  compute_listings_score - each takes a Profile and reads its
-  reviews/connections/listing/analytics JSON fields directly (no joins needed)
-  to return (points_earned, [human-readable opportunity strings for anything
-  unsatisfied]).
-- compute_total_score(profile) -> dict with total, max_possible (500 if claimed,
-  850 if pro, 0 if unclaimed), and a per-category breakdown (earned, max,
-  locked: bool, opportunities: list[str]). web_analytics/listings are ALWAYS
-  computed (even for a claimed profile) but excluded from the total and marked
-  locked=True until pro.
-- recompute_and_save_score(profile) - calls compute_total_score, writes
-  profile.search_rank_score = total, commits. Call this synchronously after any
-  mutation to a profile or its reviews/connections/listing.
+**Graph** (`agent/graph.py`): `model` (Claude with a cached static system prompt + the last 20 whole turns) and
+`tools` (runs the registry tools, collects `ui_actions`, writes `AgentToolInvocation` audit rows). History is the
+graph state in a Postgres checkpointer (thread id = conversation id). The graph is compiled per request so tool
+handlers close over that request's session and profile; `agent/orchestrator.py` holds the entry points and the
+per-conversation locks.
 
-Idempotent seed script (a CLI command or a startup check if the DB is empty)
-that deletes and recreates exactly these 5 profiles, all in the same
-category="Dentist", location="Austin, TX" so they compete in one search result
-set (reviews/connections/listing/analytics populate the JSON fields on each
-row directly):
-1. Pro: "Dr. Sarah Chen" - phone/license/website/bio filled in, 4-5 reviews
-   mostly replied and highly rated, 2-3 connections, a published listing,
-   healthy analytics numbers. Should land near ~800/850 after scoring.
-2. Claimed: "Dr. Michael Torres" - phone + bio filled in, license/website
-   blank, 3 reviews with at least one unreplied, only 1 connection, no
-   listing. Should land around ~200-300/500 - deliberately mid-low, with
-   clear room to grow.
-3-5. Unclaimed: "Dr. Amara Okafor", "Dr. James Whitfield", "Dr. Linda Park" -
-   name/category/location/email only, nothing else. lifecycle_state=unclaimed.
+**Tools (36)**, in `agent/tools/`: onboarding (11: `get_onboarding_state`, `present_known_urls`,
+`present_url_candidates`, `request_manual_urls`, `scrape_confirmed_sources`, `get_scrape_results`,
+`request_identity_confirmation`, `merge_scraped_data`, `present_conflicts`, `apply_default_business_hours`,
+`complete_onboarding`); scoring and pitch (7, including `get_improvement_plan`); `propose_field_updates`;
+reviews (2); upgrade (2, need `confirmed=true`); market (3); retention (3); UI actions (`highlight_ui`,
+`navigate_to`, `preview_pro_card`, `celebrate`); tour and doubt (3).
 
-After inserting, call recompute_and_save_score on all 5 (unclaimed ones will
-correctly resolve to 0).
+**Guided tour:** 7 fixed steps (overview, reviews, profile completion, connections, website health, listings,
+wrap-up). Data is gathered in plain Python, one forced tool call writes all the narration, stepping costs no model
+calls. A section is marked "(Pro)" only where it is locked for the category (so Listings is not, for insurance).
 
-Definition of done: seeding produces exactly 5 profiles with search_rank_score
-values matching the intended order (pro > claimed > the three unclaimed at 0).
-```
+**Doubt protocol:** three unresolved attempts on one topic escalate to a simulated specialist.
+**Time-based mechanics** (`agent/nudges.py`): templated emails for nudges, trial expiry and waitlist, triggered
+manually via `POST /api/agent/nudges/run`.
 
-### Phase 2 — Public search + profile pages
+### Non-negotiable rules (enforced in code where possible)
+1. The agent never states a number it did not get from a tool call in this conversation.
+2. Proposing is free; committing (upgrade, trial, waitlist, form fill, review reply) needs an explicit yes.
+3. The agent cannot make the owner's decisions: URL answers, identity answers and conflict choices are recorded
+   only by the owner's own clicks.
+4. Scarcity is real: slot limits are enforced server-side, urgency is never manufactured.
+5. Discounts are capped and computed server-side; handoff eligibility reaches the model only as a boolean.
+6. Everything mocked is labelled as mocked (OTP emails, review-reply sending, executive handoff).
+7. Paid actions are two-step and enforced in code: the first upgrade / trial call only records a proposal and
+   returns the price; it runs only when called again after a "yes" in a later user turn (`agent/tools/upgrade_tools.py`).
+8. The assistant drafts only bio, specialities and service area; facts (year started, awards, achievements, title,
+   license, address) come from the owner's confirmed pages or from the owner (`agent/tools/claim_tools.py`).
 
-```
-Phase 2: public pages for ClearRank.
+## Verification
 
-- GET /  or  /search - lists all profiles ordered by search_rank_score
-  descending (a simple category/location text filter in the UI is fine
-  cosmetically, but with only 5 rows in one market it won't do much - don't
-  over-build it). Show name, category, location, average rating, and score
-  (or "Not yet ranked" for unclaimed/score 0) per row.
-- GET /profile/{id} - profile detail page: name, category, location, bio (if
-  present), reviews list. If unclaimed: show a "Claim this profile" button and
-  a visible "Search Rank Score: 0 - unclaimed profiles don't rank" note. If
-  claimed/pro: show the current score total (not the full breakdown - that's
-  the manage page) and a "Manage this profile" link (plain URL, no auth).
+- `cd backend && python -m pytest` (179 tests: taxonomy, scoring, demo data, claim + auth, scraper, onboarding
+  service and tools, improvement plan, tour, greeting). Uses the separate `clearrank_test` database.
+- Agent scenarios against the real model: `python -m agent.scenarios [--scenario NAME]` (tour, upsell, what-if,
+  full market, review reply, handoff, onboarding with confirm / search / name mismatch / conflicts, and the
+  post-onboarding plan). Reset the database first; check that every stated number traces to a tool call.
+- End-to-end browser pass (Playwright, real UI + API), all green on a clean database: public pages, redirects and
+  API access control (36 checks); claim from a search card and for a new profile, edit rules, wrong / resent /
+  reused codes, per-person mailboxes (30); onboarding on live pages (Antonio Atoche, Chuck Tegano through Oxylabs)
+  and controlled identity / conflict / manual-URL states; dashboard, Manage edits, connections, review replies and
+  AI drafting (28); the 7-step tour and chat numbers (13); pricing, trial, discount tiers, listings, the
+  full-market waitlist (25); sign-in / sign-out, unfinished-owner guard, mailbox escaping, nudges (23); the
+  Insurance category end to end (9); phone-width layouts (14). Live scraping was kept to one or two profiles.
+- Scraper by hand: `python -m app.scraping.cli <url> --name "Full Name"`.
 
-Definition of done: all 5 seeded profiles are visible and correctly ordered on
-the search page; each profile page renders correctly for its lifecycle state.
-```
+## Known gaps and next steps
 
-### Phase 3 — Mock inbox + claim flow
+1. **Reviews.** Not scraped (decision above). Without them new profiles have no reviews, so Reviews & Replies
+   stays at what the seed gave. Next: Google Places API (≤5 reviews; check Google's terms on storing them) or a
+   connected Google Business Profile.
+2. **Website audit** is read from the one page we fetched. Load time is only measured on a plain request (a
+   browser/proxy render is not a fair timing), so it can stay "unknown". A fuller audit (several pages, real
+   speed tests) is not built.
+3. **Assumptions:** the dentist score split and the equal field weights are mine, not core1's; both are table data.
+4. **Pro purchase** is simulated; slot checks are check-then-write (a row lock per market would close the race).
+5. **Open destructive endpoints:** `/api/reset-demo` and `/api/agent/nudges/run` have no protection; gate them
+   before any public deploy. `DEMO_MODE` (default on) adds no-code demo sign-in; turn it off where real data lives.
+6. **Claim card lets the email be edited** (the rule as written), so whoever edits it receives the code; the name
+   check during onboarding is the only extra guard.
+7. **Prompt-injection surface:** scraped pages feed the extraction model. Mitigated by the gates above and the
+   owner's confirmations; paid actions need a priced proposal and a later "yes" (rule 7).
+8. **Sites that need a login** (Facebook, LinkedIn) are reported as blocked; Google Maps shows a limited view to
+   headless browsers. Cloudflare-protected sites need the `OXYLAB_*` settings.
+9. **Model ID:** `AGENT_MODEL` defaults to `claude-sonnet-5` in `agent/config.py`; `.env` overrides it.
+10. **Migrations:** the schema is `create_all` + drop/recreate; adopt Alembic before keeping data across versions.
+11. **Mailbox pages are public by design** (`/mailbox/<email>` stands in for real email, so anyone who knows an
+    address can read its codes). Fine for a demo; replace with real email before real accounts exist.
+12. **Unauthenticated agent chat on unclaimed profiles** has no rate limit; add one before a public deploy.
 
-```
-Phase 3: the mock email inbox and claim flow for ClearRank (no real email, no
-auth).
 
-- Clicking "Claim this profile" on an unclaimed profile's page creates a
-  MockEmail row (to_email = that profile's email, a subject like "Claim your
-  ClearRank profile", a body containing a "Claim Now" link to
-  /claim/{profile_id}/confirm) and redirects to /inbox.
-- GET /inbox - lists all MockEmail rows (newest first), showing to_email,
-  subject, and a timestamp. Clicking one marks it opened and shows the full
-  rendered body (with the working "Claim Now" link/button inside it).
-- GET /claim/{profile_id}/confirm - flips that profile's lifecycle_state to
-  "claimed", calls recompute_and_save_score, and redirects to
-  /profile/{id}/manage?justClaimed=1 (the query param is for Phase 5's tour -
-  just pass it through for now, no tour logic yet).
+## Onboarding experience update (Oct 2026)
+- **Reading is non-blocking.** `scrape_confirmed_sources` reserves the confirmed pages (status `scraping`, phase `queued`) and reads them in a
+  background thread; the agent's turn ends at once. Phases (`opening` / `reading` / `extracting`) are stored per source, and a finished page
+  shows the details it gave (`highlights`). The page polls while anything is reading and tells the agent "My pages have been read" once.
+- **Search while reading.** The owner can ask for more pages, confirm them, and confirm LinkedIn / Instagram / X links without waiting; the page shows
+  what is being searched ("<name> · <title> in <location>"), never an invented count.
+- **Sites policy** (`app/scraping/policy.py`): an allowlist of readable platforms plus any ordinary website, and a skip list (LinkedIn, Instagram, X) that is
+  never fetched. Skip-list links found by search or on the person's pages are stored unconfirmed; the owner confirms them (counts toward Connections).
+- **Clean finish.** When nothing waits on the owner (no cards, identity checks, conflicts or blockers), the agent completes onboarding without a details
+  review; bio and specialities are then suggested from Manage. If blockers remain, the details form is shown as before.
+- Google Business hours that cover only one or two days are ignored (they are today's slice, not the week).
 
-Definition of done: starting from an unclaimed profile page, clicking Claim ->
-opening the email in /inbox -> clicking Claim Now flips that profile to claimed
-and lands on its (not-yet-built) manage page URL without error.
-```
-
-### Phase 4 — Manage page
-
-```
-Phase 4: the profile "manage" page for ClearRank (no auth - a plain,
-unprotected route).
-
-GET/POST /profile/{id}/manage (claimed or pro profiles only - unclaimed
-profiles hitting this route should redirect back to their public page):
-- Editable fields: phone_number, license_number, website_url, bio. Saving
-  triggers recompute_and_save_score.
-- Connections: list of platform_name/is_connected toggles, read from and
-  written back to the profile's `connections` JSON field directly (a fixed
-  small set like Google Business Profile, Facebook, LinkedIn is fine);
-  toggling one triggers recompute.
-- Listing: business_name/address fields + is_published toggle, stored in the
-  profile's `listing` JSON field - if the profile isn't pro yet, show this
-  section locked/grayed with an "Upgrade to Pro to unlock Listings" note
-  instead of the real controls.
-- Web analytics numbers: read from the profile's `analytics` JSON field; shown
-  if pro; locked/grayed with an upsell note if claimed-but-not-pro.
-- Full score breakdown: compute_total_score(profile) rendered as a per-category
-  list (earned/max), pro-only categories visibly marked "locked" with their
-  real computed-but-unused point value shown (e.g. "Web Analytics: 0/250 -
-  unlocks with Pro") when not yet pro.
-- A "Upgrade to Pro" button (mock, no payment): flips lifecycle_state to
-  "pro", recomputes, redirects back to this same page with ?justUpgraded=1.
-
-Definition of done: the claimed seed profile shows a real ~200-300/500 score
-with two locked categories and correct opportunity notes; clicking Upgrade to
-Pro immediately unlocks all 5 categories and raises the total.
-```
-
-### Phase 5 — Conversion agent (flagship phase)
-
-```
-Phase 5: the conversion agent for ClearRank - a scripted guided tour plus an AI
-chat widget. This is the actual point of the whole build; give it real effort.
-
-PART A - Scripted guided tour (driver.js, already loaded from Phase 0):
-- On an unclaimed profile page: a tour highlighting the profile info, then the
-  "Search Rank Score: 0" note, then the "Claim this profile" button, with
-  copy explaining claiming unlocks ranking. Auto-start once per profile (e.g.
-  track via localStorage) but also offer a persistent "Take the tour" button
-  to replay it.
-- On /inbox, when arriving right after clicking Claim: highlight the new
-  unread email, then (once opened) the "Claim Now" button inside it.
-- On the manage page when the URL has ?justClaimed=1: a tour highlighting the
-  live score breakdown, then specifically the locked categories, then the
-  "Upgrade to Pro" button, explaining what upgrading unlocks using the ACTUAL
-  numbers already rendered on the page (don't hardcode copy that could drift
-  from the real values).
-- On the manage page when the URL has ?justUpgraded=1: a short celebratory
-  tour over the now-unlocked categories and the new total, ending with a link
-  back to the public search page to see the improved rank in place.
-
-PART B - AI chat widget (Anthropic Claude API):
-- A small floating chat bubble (vanilla JS, no framework) present on profile
-  detail pages and the manage page.
-- POST /api/chat - request body {profile_id, message, history: [{role,
-  content}, ...]}. On the server: look up the profile, call
-  compute_total_score(profile) fresh (live, not cached), and build a system
-  prompt along these lines: "You are a friendly, honest growth assistant for
-  ClearRank. This visitor is looking at [profile name]'s [unclaimed/claimed/
-  pro] profile. Current score: [total]/[max_possible]. [Per-category
-  breakdown]. [List of real open opportunities from compute_total_score].
-  Help the visitor understand their situation and nudge them toward
-  [claiming / upgrading to Pro] as the relevant next step - but you must
-  never state a number, rank, or fact that isn't given to you here; if asked
-  something you don't have data for, say so honestly instead of guessing."
-  Call the Anthropic API (model claude-sonnet-5; anthropic Python SDK; read
-  ANTHROPIC_API_KEY from the environment) with that system prompt + the
-  passed-in history + the new message, return the reply.
-- Client-side: keep the conversation history in a JS variable (or
-  localStorage, keyed by profile_id) and resend the full history each turn -
-  no server-side session, consistent with having no auth.
-
-Definition of done: visiting an unclaimed profile auto-starts its tour end to
-end; completing the claim -> upgrade flow shows the right tour at each step
-using real on-page numbers; the chat widget answers questions about a
-profile's actual current score/rank and correctly nudges toward the right
-next action without inventing any numbers.
-```
-
-### Phase 6 — Polish
-
-```
-Phase 6: polish pass for ClearRank.
-
-- POST /reset-demo - re-runs the Phase 1 seed script (delete + recreate the 5
-  fixed profiles) so the demo can be replayed repeatedly without manually
-  touching the database. Link it from the nav, maybe behind a confirm prompt.
-- A light CSS pass so the search results, profile, inbox, and manage pages
-  look coherent (doesn't need to be fancy - legible and consistent is enough).
-
-Definition of done: clicking Reset Demo restores all 5 profiles to their
-original state and scores, ready to demo again from a clean unclaimed state.
-```
-
----
-
-## Verification (for you, at each phase)
-
-- Phase 0: app boots, base page renders, driver.js loads with no console errors.
-- Phase 1: seeding produces exactly 5 profiles with the expected score ordering (spot-check the arithmetic against the point budget yourself).
-- Phase 2: all 5 show up correctly ranked on the search page; each profile page matches its lifecycle state.
-- Phase 3: claim a profile end-to-end via the mock inbox; confirm it flips to claimed and rescoring happened.
-- Phase 4: edit fields / toggle a connection on the claimed profile and confirm the score changes; upgrade to Pro and confirm all 5 categories unlock.
-- Phase 5: **the important one** - actually click through the tour on a fresh unclaimed profile, then talk to the chat widget and ask it things like "why is my score low" and "what happens if I upgrade" - confirm its answers match the real numbers on the page.
-- Phase 6: hit Reset Demo and confirm you're back to a clean, replayable starting state.
+## One-question-at-a-time onboarding (Oct 2026)
+- The onboarding screen shows ONE thing at a time and never needs scrolling: a page question (one page per screen), then, once reading has
+  started, a question per link to a site we do not read (LinkedIn / Instagram / X; "not mine" is remembered as declined), then identity checks and
+  conflicts one at a time. Anything waiting on the owner always comes before the reading board; the board (compact rows, live stage per page,
+  the details each page gave) shows only when nothing is waiting.
+- The first screen's last step offers "Read these pages" and "Looking for more of your pages" side by side.
+- The agent's latest words are shown on the main screen above the question (short, 1-2 sentences); the chat panel is for the owner's own questions.
+- Finishing saves directly over REST (about 15 ms) instead of through an agent turn; the results screen is a set of graphic slides (score ring,
+  rank dots, point bars, Pro before/after) with the agent's summary beside them.
+- Reading starts by itself the moment the last page card is answered (`POST /api/onboarding/{id}/read`, background thread; only confirmed pages are taken),
+  so there is no "read these pages" step. The board then offers "Looking for more details from the internet" and "Add a webpage manually", and each read
+  page has a dropdown with everything found on it (`details`).

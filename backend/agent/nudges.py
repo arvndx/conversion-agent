@@ -5,24 +5,14 @@ pattern since this project deliberately has no Celery/cron.
 """
 
 from datetime import datetime
+from html import escape
 
 from sqlmodel import Session, select
 
 from app.models import MockEmail, Profile, ProSlotWaitlist
-from app.scoring import COMPLETION_FIELDS, compute_total_score, recompute_and_save_score, simulate_total_score
+from app.category_config import config_for
+from app.scoring import completion_field_keys, compute_total_score, recompute_and_save_score, simulate_total_score
 
-COMPLETION_FIELD_LABELS = {
-    "phone_number": "your phone number",
-    "license_number": "your license number",
-    "website_url": "your website",
-    "bio": "your bio",
-}
-SENTINEL_VALUES = {
-    "phone_number": "(555) 555-0100",
-    "license_number": "PENDING-000000",
-    "website_url": "https://example.com",
-    "bio": "placeholder bio for simulation only",
-}
 
 
 def compute_best_nudge(profile: Profile) -> dict | None:
@@ -32,13 +22,15 @@ def compute_best_nudge(profile: Profile) -> dict | None:
     """
     current_total = profile.search_rank_score
     best = None
-    for field in COMPLETION_FIELDS:
+    labels = {f["key"]: f["label"] for f in config_for(profile).basic_fields}
+    for field in completion_field_keys(profile):
         if getattr(profile, field):
             continue
-        hypothetical = simulate_total_score(profile, {field: SENTINEL_VALUES[field]})
+        # Any non-empty value fills the field; the score only cares that it is present.
+        hypothetical = simulate_total_score(profile, {field: "placeholder"})
         delta = hypothetical["total"] - current_total
         if delta > 0 and (best is None or delta > best["delta"]):
-            best = {"field": field, "label": COMPLETION_FIELD_LABELS[field], "delta": delta}
+            best = {"field": field, "label": f"your {labels.get(field, field).lower()}", "delta": delta}
     return best
 
 
@@ -62,8 +54,8 @@ def send_nudge_emails(session: Session, profile_id: int | None = None, force: bo
                 to_email=profile.email,
                 subject=f"Add {nudge['label']} to raise your Search Rank Score by {nudge['delta']} points",
                 body_html=(
-                    f"<p>Hi {profile.name},</p>"
-                    f"<p>Adding {nudge['label']} would raise your Search Rank Score from "
+                    f"<p>Hi {escape(profile.name)},</p>"
+                    f"<p>Adding {escape(nudge['label'])} would raise your Search Rank Score from "
                     f"{current} to {projected} — a real, computed gain of {nudge['delta']} points.</p>"
                 ),
                 profile_id=profile.id,
@@ -100,7 +92,7 @@ def process_waitlist(session: Session, category: str, location: str) -> list[int
                 to_email=profile.email,
                 subject=f"A Pro spot just opened up for {category} in {location}",
                 body_html=(
-                    f"<p>Hi {profile.name},</p>"
+                    f"<p>Hi {escape(profile.name)},</p>"
                     f"<p>A Pro spot just opened up in your market. It's first-come, first-served — "
                     f"upgrade now before another business takes it.</p>"
                 ),
@@ -140,7 +132,7 @@ def send_trial_expiry_emails(session: Session) -> list[int]:
                 to_email=profile.email,
                 subject=f"Your Pro trial ended — you lost {lost_points} points",
                 body_html=(
-                    f"<p>Hi {profile.name},</p>"
+                    f"<p>Hi {escape(profile.name)},</p>"
                     f"<p>Your free Pro trial ended and your Search Rank Score dropped to "
                     f"{score['total']}/{score['max_possible']} — a real loss of {lost_points} points from "
                     f"Website Health and Listings. Upgrade now to get them back.</p>"

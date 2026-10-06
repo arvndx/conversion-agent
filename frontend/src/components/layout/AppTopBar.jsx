@@ -1,84 +1,69 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AvatarCircle from '../shared/AvatarCircle.jsx'
-import { searchProfiles } from '../../api/search.js'
+import { demoLogin, getDemoProfiles } from '../../api/auth.js'
 import { useActiveProfile } from '../../context/ActiveProfileContext.jsx'
+import { useAuth } from '../../context/AuthContext.jsx'
 
 function AppTopBar({ title, currentProfile, actions }) {
   const navigate = useNavigate()
   const { setActiveProfileId } = useActiveProfile()
+  const { refresh, logout } = useAuth()
   const [switchable, setSwitchable] = useState([])
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
-    searchProfiles().then((data) => {
-      setSwitchable(data.results.filter((p) => p.is_verified))
-    })
+    // A short list of ready-made accounts; the server only serves it in demo mode.
+    getDemoProfiles().then((d) => setSwitchable(d.profiles)).catch(() => setSwitchable([]))
   }, [])
 
-  function switchTo(id) {
+  async function switchTo(id) {
+    await demoLogin(id) // demo mode: sign in as that account without a code
     setActiveProfileId(id)
+    await refresh()
     setOpen(false)
     navigate(`/dashboard/${id}`)
   }
 
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '14px 24px',
-        borderBottom: '1px solid var(--border)',
-        background: '#fff',
-      }}
-    >
-      <h1 style={{ fontSize: 18, margin: 0 }}>{title}</h1>
+  async function signOut() {
+    await logout()
+    navigate('/signin')
+  }
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+  return (
+    <div className="app-topbar">
+      <h1>{title}</h1>
+
+      <div className="app-topbar__right">
         {actions}
-        <span style={{ cursor: 'pointer' }}>🔍</span>
-        <button style={{ border: '1px solid var(--border)', background: '#fff', borderRadius: 6, padding: '6px 14px', fontSize: 13, cursor: 'pointer' }}>
-          Help
+        <button className="icon-btn" aria-label="Search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
         </button>
-        <span style={{ cursor: 'pointer' }}>🔔</span>
+        <button className="btn btn--ghost btn--sm">Help</button>
+        <button className="icon-btn" aria-label="Notifications">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9a6 6 0 1 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9Z" /><path d="M10 20a2 2 0 0 0 4 0" /></svg>
+          <span className="icon-btn__dot" />
+        </button>
 
         <div style={{ position: 'relative' }}>
-          <button
-            onClick={() => setOpen((o) => !o)}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer' }}
-          >
+          <button className="user-chip" onClick={() => setOpen((o) => !o)}>
             <AvatarCircle name={currentProfile?.name || '?'} size={32} />
-            <span style={{ fontSize: 13, textAlign: 'left' }}>
-              <div style={{ color: 'var(--ink-soft)', fontSize: 11 }}>Viewing as</div>
-              <div style={{ fontWeight: 600 }}>{currentProfile?.name}</div>
+            <span className="user-chip__who">
+              <small>Viewing as</small>
+              <b>{currentProfile?.name}</b>
             </span>
-            <span>▾</span>
+            <span aria-hidden="true">▾</span>
           </button>
 
           {open && (
-            <div
-              style={{
-                position: 'absolute',
-                right: 0,
-                top: '110%',
-                background: '#fff',
-                border: '1px solid var(--border)',
-                borderRadius: 8,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                minWidth: 200,
-                zIndex: 10,
-              }}
-            >
+            <div className="menu">
+              {switchable.length > 0 && <div className="menu__label">SWITCH DEMO ACCOUNT</div>}
               {switchable.map((p) => (
-                <div
-                  key={p.id}
-                  onClick={() => switchTo(p.id)}
-                  style={{ padding: '10px 14px', fontSize: 13, cursor: 'pointer' }}
-                >
-                  {p.name}
+                <div key={p.id} className="menu__item" onClick={() => switchTo(p.id)}>
+                  {p.name} <small>· {p.category}</small>
                 </div>
               ))}
+              <div className="menu__item menu__item--out" onClick={signOut}>Sign out</div>
             </div>
           )}
         </div>

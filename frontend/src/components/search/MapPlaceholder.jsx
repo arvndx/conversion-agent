@@ -77,6 +77,7 @@ function MapPlaceholder({ results }) {
   return (
     <div
       ref={containerRef}
+      className="search-map"
       style={{
         position: 'sticky',
         top: 16,

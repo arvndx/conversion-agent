@@ -8,31 +8,25 @@ import ContactInfoCard from '../components/profile/ContactInfoCard.jsx'
 import BusinessHoursCard from '../components/profile/BusinessHoursCard.jsx'
 import RelatedProfessionalsList from '../components/profile/RelatedProfessionalsList.jsx'
 import ReviewsList from '../components/profile/ReviewsList.jsx'
-import { claimProfile, getProfile, getRelatedProfiles } from '../api/profiles.js'
+import { getProfile, getRelatedProfiles } from '../api/profiles.js'
+import { useClaimCard } from '../components/claim/ClaimCard.jsx'
 
 function ProfileDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { openClaim } = useClaimCard()
   const [profile, setProfile] = useState(null)
   const [topRated, setTopRated] = useState([])
   const [topViewed, setTopViewed] = useState([])
-  const [claiming, setClaiming] = useState(false)
 
   useEffect(() => {
-    getProfile(id).then(setProfile)
-    getRelatedProfiles(id, { sort: 'rating' }).then(setTopRated)
-    getRelatedProfiles(id, { sort: 'views' }).then(setTopViewed)
-  }, [id])
-
-  async function onClaim() {
-    setClaiming(true)
-    try {
-      await claimProfile(id)
-      navigate('/inbox')
-    } finally {
-      setClaiming(false)
-    }
-  }
+    getProfile(id)
+      .then(setProfile)
+      .catch(() => navigate('/not-found?what=profile', { replace: true })) // off the profile route, so the assistant is not offered
+    // The side lists are a nicety: if they fail the profile is still worth showing.
+    getRelatedProfiles(id, { sort: 'rating' }).then(setTopRated).catch(() => {})
+    getRelatedProfiles(id, { sort: 'views' }).then(setTopViewed).catch(() => {})
+  }, [id, navigate])
 
   if (!profile) return null
 
@@ -40,7 +34,7 @@ function ProfileDetailPage() {
     <div>
       <TopNav />
       {profile.lifecycle_state === 'unclaimed' && (
-        <UnclaimedNoticeBar onClaim={onClaim} claiming={claiming} />
+        <UnclaimedNoticeBar onClaim={() => openClaim({ profileId: Number(id) })} />
       )}
       <Breadcrumb
         items={[{ label: 'Search', to: '/search' }, { label: profile.category, to: `/search?category=${profile.category}` }, { label: profile.name }]}

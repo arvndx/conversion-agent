@@ -4,6 +4,10 @@ export function getDashboard(id) {
   return get(`/dashboard/${id}`)
 }
 
+export function getImprovementPlan(id) {
+  return get(`/profiles/${id}/improvement-plan`)
+}
+
 export function getManage(id) {
   return get(`/profiles/${id}/manage`)
 }

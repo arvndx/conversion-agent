@@ -1,13 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 
+from app.auth import require_access
+from app.constants import PRO_STATES
 from app.db import get_session
 from app.models import Profile
 from app.pricing import MONTHLY_PRICE_USD, get_active_offer, record_pricing_page_visit
 from app.scoring import compute_total_score
 from app.slots import get_slot_status, simulate_rank
 
-router = APIRouter(prefix="/api/profiles", tags=["pricing"])
+router = APIRouter(prefix="/api/profiles", tags=["pricing"], dependencies=[Depends(require_access)])
 
 
 def _get_claimed_or_404(session: Session, profile_id: int) -> Profile:
@@ -44,7 +46,7 @@ def get_pricing(profile_id: int, session: Session = Depends(get_session)):
         "slot_status": get_slot_status(session, profile),
         "category": profile.category,
         "location": profile.location,
-        "is_pro": profile.lifecycle_state == "pro",
+        "is_pro": profile.lifecycle_state in PRO_STATES,
     }
 
 

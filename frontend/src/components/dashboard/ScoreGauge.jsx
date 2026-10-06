@@ -1,41 +1,32 @@
+const ARC = Math.PI * 90 // length of the half-circle below
+
 function ScoreGauge({ score, maxPossible, deltaSinceLastWeek }) {
   const denom = maxPossible || 850
   const pct = Math.max(0, Math.min(1, score / denom))
-  const needleRotation = pct * 180
+  const arc = 'M 10 100 A 90 90 0 0 1 190 100'
 
   return (
-    <div style={{ textAlign: 'center' }} data-agent-target="score-gauge">
-      <svg viewBox="0 0 200 110" width="220" height="121">
+    <div className="gauge-card" data-agent-target="score-gauge">
+      <svg viewBox="0 0 200 112" width="240" height="134" role="img" aria-label={`Score ${score} of ${denom}`}>
         <defs>
           <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#dc2626" />
-            <stop offset="50%" stopColor="#f59e0b" />
+            <stop offset="0%" stopColor="#7c5cff" />
+            <stop offset="55%" stopColor="#4527d1" />
             <stop offset="100%" stopColor="#16a34a" />
           </linearGradient>
         </defs>
-        <path d="M 10 100 A 90 90 0 0 1 190 100" fill="none" stroke="#e4e6ea" strokeWidth="14" strokeLinecap="round" />
-        <path d="M 10 100 A 90 90 0 0 1 190 100" fill="none" stroke="url(#gaugeGradient)" strokeWidth="14" strokeLinecap="round" opacity="0.9" />
-        <line
-          x1="100"
-          y1="100"
-          x2="30"
-          y2="100"
-          stroke="var(--ink)"
-          strokeWidth="3"
-          strokeLinecap="round"
-          transform={`rotate(${needleRotation} 100 100)`}
-        />
-        <circle cx="100" cy="100" r="6" fill="var(--ink)" />
+        <path d={arc} fill="none" stroke="#eef0f5" strokeWidth="16" strokeLinecap="round" />
+        <path d={arc} fill="none" stroke="url(#gaugeGradient)" strokeWidth="16" strokeLinecap="round" strokeDasharray={`${pct * ARC} ${ARC}`} />
       </svg>
 
-      <div style={{ marginTop: -8 }}>
-        <div style={{ fontSize: 40, fontWeight: 800, lineHeight: 1 }}>{score}</div>
-        <div style={{ fontSize: 12, color: 'var(--ink-soft)', marginTop: 4 }}>Search Rank Score ⓘ</div>
+      <div style={{ marginTop: -50 }}>
+        <div style={{ fontSize: 44, fontWeight: 800, lineHeight: 1, letterSpacing: '-0.03em' }}>{score}</div>
+        <div className="panel__sub" style={{ marginTop: 6 }}>Search Rank Score · of {denom}</div>
         {typeof deltaSinceLastWeek === 'number' && (
-          <div style={{ fontSize: 12, color: deltaSinceLastWeek >= 0 ? 'var(--success)' : 'var(--danger)', marginTop: 4 }}>
-            {deltaSinceLastWeek >= 0 ? '+' : ''}
+          <span className={`delta ${deltaSinceLastWeek >= 0 ? 'delta--up' : 'delta--down'}`}>
+            {deltaSinceLastWeek >= 0 ? '▲ +' : '▼ '}
             {deltaSinceLastWeek} since last week
-          </div>
+          </span>
         )}
       </div>
     </div>

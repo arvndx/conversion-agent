@@ -8,10 +8,12 @@ covering all 7 steps at once, grounded strictly in that pre-gathered data.
 
 import json
 
-from app.constants import CONNECTION_PLATFORMS
-from app.scoring import COMPLETION_FIELDS, compute_total_score, simulate_total_score
+from langchain_core.messages import HumanMessage, SystemMessage
 
-from agent.config import AGENT_MODEL, get_client
+from app.category_config import config_for
+from app.scoring import compute_total_score, completion_field_keys, simulate_total_score
+
+from agent.config import get_chat_model
 from agent.tools import ToolContext
 from agent.tools.retention_tools import get_active_offer
 from agent.tools.review_tools import get_unreplied_reviews
@@ -71,7 +73,7 @@ def _gather_step_data(ctx: ToolContext) -> dict:
     profile = ctx.profile
     current = compute_total_score(profile)
 
-    missing_fields = [f for f in COMPLETION_FIELDS if not getattr(profile, f)]
+    missing_fields = [f for f in completion_field_keys(profile) if not getattr(profile, f)]
     completion_hypo = (
         simulate_total_score(profile, {f: "provided" for f in missing_fields}) if missing_fields else None
     )
@@ -86,7 +88,8 @@ def _gather_step_data(ctx: ToolContext) -> dict:
     )
 
     connections_hypo = simulate_total_score(
-        profile, {"connections": [{"platform_name": p, "is_connected": True} for p in CONNECTION_PLATFORMS]}
+        profile,
+        {"connections": [{"platform_name": s["label"], "is_connected": True} for s in config_for(profile).slots("social")]},
     )
 
     return {
@@ -135,21 +138,16 @@ def _gather_step_data(ctx: ToolContext) -> dict:
 
 
 def _generate_narrations(data: dict) -> dict[str, str]:
-    client = get_client()
-    response = client.messages.create(
-        model=AGENT_MODEL,
-        max_tokens=1500,
-        system=NARRATION_SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": json.dumps(data)}],
-        tools=[SUBMIT_NARRATIONS_TOOL],
-        tool_choice={"type": "tool", "name": "submit_tour_narrations"},
+    model = get_chat_model(max_tokens=1500).bind_tools(
+        [SUBMIT_NARRATIONS_TOOL], tool_choice="submit_tour_narrations"
     )
-    tool_use = next(block for block in response.content if block.type == "tool_use")
+    response = model.invoke([SystemMessage(NARRATION_SYSTEM_PROMPT), HumanMessage(json.dumps(data))])
+    tool_input = next(call["args"] for call in response.tool_calls if call["name"] == "submit_tour_narrations")
     # Schema-conformant tool input isn't unconditionally guaranteed — an occasional
     # malformed item shouldn't crash the whole tour. build_tour_steps already falls back
     # to generic per-step text for any id missing here, so skipping a bad item is safe.
     narrations = {}
-    for item in tool_use.input.get("steps", []):
+    for item in tool_input.get("steps", []):
         if isinstance(item, dict) and "id" in item and "text" in item:
             narrations[item["id"]] = item["text"]
     return narrations
@@ -178,6 +176,8 @@ def build_tour_steps(ctx: ToolContext) -> list[dict]:
         meta = _resolve_step_meta(step, ctx.profile)
         if step["id"] == "reviews":
             meta["ui_target"] = reviews_target
+        if data["overview"]["categories"].get(step["id"], {}).get("locked"):
+            meta["title"] = f"{meta['title']} (Pro)"
         steps.append(
             {
                 "step_number": i + 1,

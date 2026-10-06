@@ -1,16 +1,18 @@
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
+import { useClaimCard } from '../claim/ClaimCard.jsx'
+import { useAuth } from '../../context/AuthContext.jsx'
 
-function TopNav({ initialKeyword = '', initialLocation = '' }) {
+function TopNav({ initialKeyword = '' }) {
   const navigate = useNavigate()
+  const { openClaim } = useClaimCard()
+  const { me, logout } = useAuth()
   const [keyword, setKeyword] = useState(initialKeyword)
-  const [location, setLocation] = useState(initialLocation)
 
   function onSubmit(e) {
     e.preventDefault()
     const params = new URLSearchParams()
     if (keyword) params.set('keyword', keyword)
-    if (location) params.set('location', location)
     navigate(`/search?${params.toString()}`)
   }
 
@@ -63,20 +65,9 @@ function TopNav({ initialKeyword = '', initialLocation = '' }) {
           <input
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
-            placeholder="Find a professional, service or business"
-            style={{ flex: 2, border: 'none', padding: '10px 16px', outline: 'none' }}
-          />
-          <input
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder="Location"
-            style={{
-              flex: 1,
-              border: 'none',
-              borderLeft: '1px solid var(--border)',
-              padding: '10px 16px',
-              outline: 'none',
-            }}
+            placeholder="Search by name, company, title or city"
+            aria-label="Search"
+            style={{ flex: 1, border: 'none', padding: '10px 16px', outline: 'none' }}
           />
           <button
             type="submit"
@@ -100,21 +91,40 @@ function TopNav({ initialKeyword = '', initialLocation = '' }) {
         </nav>
 
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <a href="#login" style={{ fontSize: 14 }}>
-            Login
-          </a>
           <button
-            style={{
-              background: 'var(--brand)',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 6,
-              padding: '8px 16px',
-              cursor: 'pointer',
-            }}
+            onClick={() => openClaim()}
+            style={{ background: '#fff', color: 'var(--brand)', border: '1.5px solid var(--brand)', borderRadius: 6, padding: '7px 14px', fontWeight: 700, cursor: 'pointer' }}
           >
-            Sign up
+            Claim a profile
           </button>
+          {me?.authenticated ? (
+            <>
+              <Link to={`/dashboard/${me.profile_id}`} style={{ fontSize: 14, fontWeight: 600 }}>
+                {me.name}
+              </Link>
+              <button
+                onClick={async () => {
+                  await logout()
+                  navigate('/search')
+                }}
+                style={{ background: 'none', border: 'none', color: 'var(--ink-soft)', cursor: 'pointer', fontSize: 14 }}
+              >
+                Sign out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/signin" style={{ fontSize: 14 }}>
+                Login
+              </Link>
+              <button
+                onClick={() => openClaim()}
+                style={{ background: 'var(--brand)', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', cursor: 'pointer' }}
+              >
+                Sign up
+              </button>
+            </>
+          )}
         </div>
       </div>
     </header>

@@ -9,6 +9,8 @@ FROM python:3.11-slim
 WORKDIR /app/backend
 COPY backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
+# Headless Chromium (+ system libraries) for the scraper's browser fallback; adds a few hundred MB.
+RUN playwright install --with-deps chromium
 COPY backend/ ./
 COPY --from=frontend-build /app/frontend/dist ./static
 

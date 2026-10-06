@@ -1,9 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
 import { replyToReview } from '../../api/dashboard.js'
 import { useAgentUIBridge } from '../../context/AgentUIBridgeContext.jsx'
+import AvatarCircle from '../shared/AvatarCircle.jsx'
 
 const ERASE_MS_PER_CHAR = 10
 const TYPE_MS_PER_CHAR = 16
+
+function ReviewHead({ review }) {
+  const stars = Math.max(0, Math.min(5, review.rating || 0))
+  return (
+    <div className="review__head">
+      <AvatarCircle name={review.reviewer_name} size={36} />
+      <div className="review__who">{review.reviewer_name}</div>
+      <span className="stars" aria-label={`${stars} out of 5 stars`}>{'★'.repeat(stars)}<i>{'★'.repeat(5 - stars)}</i></span>
+    </div>
+  )
+}
 
 function ReviewRow({ profileId, review, onReplied }) {
   const bridge = useAgentUIBridge()
@@ -69,12 +81,11 @@ function ReviewRow({ profileId, review, onReplied }) {
   }
 
   return (
-    <div style={{ borderBottom: '1px solid var(--border)', padding: '12px 0' }} data-agent-target={`review-${review.id}`}>
-      <div style={{ fontWeight: 600, fontSize: 14 }}>
-        {review.reviewer_name} <span style={{ color: '#f59e0b' }}>{'★'.repeat(review.rating)}</span>
-      </div>
-      <div style={{ fontSize: 14, margin: '4px 0 8px' }}>{review.body}</div>
+    <div className="review review--pending" data-agent-target={`review-${review.id}`}>
+      <ReviewHead review={review} />
+      <p className="review__body">{review.body}</p>
       <textarea
+        className={`reply-box${aiFilled ? ' reply-box--ai' : ''}`}
         value={draft}
         onChange={(e) => {
           draftGenerationRef.current++ // the user is typing — stop any in-flight redraft animation
@@ -83,40 +94,11 @@ function ReviewRow({ profileId, review, onReplied }) {
         }}
         placeholder="Write a reply…"
         rows={2}
-        style={{
-          width: '100%',
-          border: aiFilled ? '1px solid var(--brand)' : '1px solid var(--border)',
-          borderRadius: 6,
-          padding: '6px 8px',
-          fontSize: 13,
-          fontFamily: 'inherit',
-        }}
       />
-      {aiFilled && (
-        <div style={{ fontSize: 11, color: 'var(--brand)', marginTop: 4 }}>✨ Drafted by assistant — review before sending</div>
-      )}
-      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-        <button
-          onClick={onDraft}
-          style={{ border: '1px solid var(--border)', background: '#fff', borderRadius: 6, padding: '6px 12px', fontSize: 12, cursor: 'pointer' }}
-        >
-          ✨ AI Draft Reply
-        </button>
-        <button
-          onClick={onSend}
-          disabled={!draft.trim() || sending}
-          style={{
-            border: 'none',
-            background: 'var(--brand)',
-            color: '#fff',
-            borderRadius: 6,
-            padding: '6px 12px',
-            fontSize: 12,
-            fontWeight: 600,
-            cursor: !draft.trim() || sending ? 'default' : 'pointer',
-            opacity: !draft.trim() || sending ? 0.6 : 1,
-          }}
-        >
+      {aiFilled && <div className="ai-note">✨ Drafted by assistant — review before sending</div>}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <button onClick={onDraft} className="btn btn--ghost btn--sm">✨ AI Draft Reply</button>
+        <button onClick={onSend} disabled={!draft.trim() || sending} className="btn btn--primary btn--sm">
           {sending ? 'Sending…' : 'Send Reply'}
         </button>
       </div>
@@ -126,7 +108,7 @@ function ReviewRow({ profileId, review, onReplied }) {
 
 function ReviewReplyList({ profileId, reviews, onReplied }) {
   if (!reviews?.length) {
-    return <div style={{ fontSize: 13, color: 'var(--ink-soft)' }}>No reviews yet.</div>
+    return <div className="empty-note">No reviews yet.</div>
   }
 
   const unreplied = reviews.filter((r) => !r.reply)
@@ -138,22 +120,10 @@ function ReviewReplyList({ profileId, reviews, onReplied }) {
         <ReviewRow key={r.id} profileId={profileId} review={r} onReplied={onReplied} />
       ))}
       {replied.map((r) => (
-        <div key={r.id} style={{ borderBottom: '1px solid var(--border)', padding: '12px 0' }}>
-          <div style={{ fontWeight: 600, fontSize: 14 }}>
-            {r.reviewer_name} <span style={{ color: '#f59e0b' }}>{'★'.repeat(r.rating)}</span>
-          </div>
-          <div style={{ fontSize: 14, margin: '4px 0' }}>{r.body}</div>
-          <div
-            style={{
-              fontSize: 13,
-              color: 'var(--ink-soft)',
-              marginTop: 6,
-              paddingLeft: 12,
-              borderLeft: '2px solid var(--border)',
-            }}
-          >
-            Reply: {r.reply}
-          </div>
+        <div key={r.id} className="review">
+          <ReviewHead review={r} />
+          <p className="review__body">{r.body}</p>
+          <div className="review__reply"><small>Your reply</small>{r.reply}</div>
         </div>
       ))}
     </div>

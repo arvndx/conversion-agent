@@ -10,7 +10,7 @@ TOUR_STEPS = [
         "title": "Your Search Rank Score",
         "ui_target": "score-gauge",
         "route": "dashboard",
-        "purpose": "Explain what the Search Rank Score is (0-850, 5 categories) and their current standing.",
+        "purpose": "Explain what the Search Rank Score is (up to 850 across 5 sections; some sections may be unlocked only with Pro, depending on their category) and their current standing.",
         "data_tools": ["get_score_snapshot"],
     },
     {
@@ -43,7 +43,7 @@ TOUR_STEPS = [
     },
     {
         "id": "web_analytics",
-        "title": "Website Health (Pro)",
+        "title": "Website Health",
         "ui_target": "manage-analytics-section",
         "route": "manage",
         "purpose": "Point at the real (locked) Website Health section now on screen — this is a real audit of "
@@ -55,7 +55,7 @@ TOUR_STEPS = [
     },
     {
         "id": "listings",
-        "title": "Listings (Pro)",
+        "title": "Listings",
         "ui_target": "manage-listings-section",
         "route": "manage",
         "purpose": "Point at the real (locked) Listings section now on screen — explain syndication to "

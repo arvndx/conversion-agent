@@ -26,7 +26,7 @@ function DashboardPage() {
     setActiveProfileId(profileId)
     getDashboard(profileId)
       .then(setData)
-      .catch(() => setError('not-claimed'))
+      .catch((e) => e.status !== 401 && setError('not-claimed'))
   }, [profileId])
 
   useEffect(() => {
@@ -40,31 +40,17 @@ function DashboardPage() {
   if (error || !data) return null
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div className="owner-shell">
       <Sidebar profileId={profileId} onboarding={data.onboarding} />
 
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="app-main">
         <PromoBanner />
         <AppTopBar
           title="Dashboard"
           currentProfile={data.profile}
           actions={
             data.profile.lifecycle_state !== 'pro' && (
-              <button
-                onClick={() => navigate(`/dashboard/${profileId}/upgrade`)}
-                data-agent-target="dashboard-upgrade-button"
-                style={{
-                  background: 'linear-gradient(135deg, #f5b301, var(--pro-badge))',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 999,
-                  padding: '8px 16px',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(217, 119, 6, 0.3)',
-                }}
-              >
+              <button className="btn btn--pro btn--sm" onClick={() => navigate(`/dashboard/${profileId}/upgrade`)} data-agent-target="dashboard-upgrade-button">
                 👑 Upgrade to Pro
               </button>
             )
@@ -72,50 +58,32 @@ function DashboardPage() {
         />
 
         {searchParams.get('justUpgraded') === '1' && (
-          <div style={{ background: '#dcfce7', color: '#166534', padding: '10px 24px', fontSize: 13 }}>
-            🎉 You're now Pro! Website Health and Listings are unlocked.
-          </div>
+          <div className="notice notice--ok">🎉 You're now Pro! Website Health and Listings are unlocked.</div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 20, padding: 24 }}>
-          <div>
+        <div className="owner-grid owner-grid--dash">
+          <div className="stack">
             <TrialBadge trialEndsAt={data.profile.trial_ends_at} />
             <ProfileSummaryCard profile={data.profile} />
-            <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: '#fff', padding: 20, marginTop: 16, textAlign: 'center' }}>
+            <div className="panel">
               <ScoreGauge score={data.score.total} maxPossible={data.score.max_possible} deltaSinceLastWeek={data.profile.score_delta_last_week} />
-              <button
-                style={{
-                  width: '100%',
-                  marginTop: 12,
-                  background: 'var(--brand)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '10px 0',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                Request Review
-              </button>
+              <button className="btn btn--primary btn--block" style={{ marginTop: 18 }}>Request Review</button>
             </div>
             <AIWritingStudioCard studio={data.ai_writing_studio} />
           </div>
 
-          <div>
+          <div className="stack">
             <PromoCarousel />
-            <div style={{ marginTop: 16 }}>
-              <ScoreOverviewCard score={data.score} />
-            </div>
+            <ScoreOverviewCard score={data.score} />
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginTop: 16 }}>
+            <div className="cat-grid">
               {data.category_cards.map((card) => (
                 <CategoryCard key={card.key} card={card} profileId={profileId} />
               ))}
             </div>
 
             {data.upsell_cards.length > 0 && (
-              <div style={{ display: 'flex', gap: 16, marginTop: 16, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                 {data.upsell_cards.map((card) => (
                   <UpsellCard key={card.key} card={card} onUnlock={onUnlock} />
                 ))}

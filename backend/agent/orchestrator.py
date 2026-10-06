@@ -1,24 +1,22 @@
-import json
 import threading
-import time
 from collections import defaultdict
 from datetime import datetime
 
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
-from agent.config import AGENT_MAX_TOOL_ROUNDS, AGENT_MODEL, get_client
-from agent.models import AgentConversation, AgentMessage, AgentToolInvocation
-from agent.prompts import STATIC_SYSTEM_PROMPT, build_context_block
-from agent.server_tools import WEB_SEARCH_TOOL
-from agent.tools import TOOL_REGISTRY, ToolContext
+from app import onboarding
+from agent.graph import build_graph, delete_threads, run_config, turn_input
+from agent.models import AgentConversation
+from agent.prompts import build_context_block
+from agent.tools import ToolContext
 
 MILESTONE_THRESHOLDS = [100, 200, 300, 400, 500, 600, 700, 800]
 
 # FastAPI runs these sync route handlers in a threadpool, so two requests for the same
 # conversation (e.g. a dashboard-then-redirect double greet, or a fast double-send) can
-# genuinely overlap. Both would read the same "next sequence index" and interleave writes,
-# corrupting message ordering — so every run_turn for a given conversation is serialized.
+# genuinely overlap. Both would load the same checkpoint and the later write would silently
+# drop the other's messages — so every run_turn for a given conversation is serialized.
 _conversation_locks: dict[int, threading.Lock] = defaultdict(threading.Lock)
 _locks_guard = threading.Lock()
 
@@ -26,13 +24,6 @@ _locks_guard = threading.Lock()
 def _lock_for(conversation_id: int) -> threading.Lock:
     with _locks_guard:
         return _conversation_locks[conversation_id]
-
-# Cap how much history is replayed into the model on each call, so a long-running
-# demo conversation doesn't grow the request unboundedly. Windowed by whole turns
-# (a "turn"/"auto_greeting" message plus every "tool_results" continuation that
-# follows it), never mid-turn — splitting a tool_use from its tool_result would
-# make the request invalid.
-MAX_HISTORY_TURNS = 20
 
 
 def get_or_create_conversation(session: Session, profile_id: int) -> AgentConversation:
@@ -59,67 +50,10 @@ def get_or_create_conversation(session: Session, profile_id: int) -> AgentConver
             raise
         return conversation
     session.refresh(conversation)
+    # Conversation ids restart after a demo reseed, so make sure no checkpoint left over from an
+    # earlier conversation with the same id (e.g. after `python -m app.seed`) leaks into this one.
+    delete_threads([conversation.id])
     return conversation
-
-
-def _load_history(session: Session, conversation_id: int) -> list[dict]:
-    messages = session.exec(
-        select(AgentMessage)
-        .where(AgentMessage.conversation_id == conversation_id)
-        .order_by(AgentMessage.sequence_index)
-    ).all()
-
-    turn_start_indices = [i for i, m in enumerate(messages) if m.kind in ("turn", "auto_greeting")]
-    if len(turn_start_indices) > MAX_HISTORY_TURNS:
-        cutoff = turn_start_indices[-MAX_HISTORY_TURNS]
-        messages = messages[cutoff:]
-
-    return [{"role": m.role, "content": m.content} for m in messages]
-
-
-def _next_sequence_index(session: Session, conversation_id: int) -> int:
-    last = session.exec(
-        select(AgentMessage)
-        .where(AgentMessage.conversation_id == conversation_id)
-        .order_by(AgentMessage.sequence_index.desc())
-    ).first()
-    return (last.sequence_index + 1) if last else 0
-
-
-def _persist_message(session, conversation_id, role, content, kind="turn", stop_reason=None, model=None, usage=None):
-    msg = AgentMessage(
-        conversation_id=conversation_id,
-        sequence_index=_next_sequence_index(session, conversation_id),
-        role=role,
-        kind=kind,
-        content=content,
-        stop_reason=stop_reason,
-        model=model,
-        input_tokens=getattr(usage, "input_tokens", None),
-        output_tokens=getattr(usage, "output_tokens", None),
-    )
-    session.add(msg)
-    session.commit()
-    session.refresh(msg)
-    return msg
-
-
-def _tool_schemas() -> list[dict]:
-    custom_tools = [
-        {"name": t.name, "description": t.description, "input_schema": t.input_schema}
-        for t in TOOL_REGISTRY.values()
-    ]
-    return [WEB_SEARCH_TOOL, *custom_tools]
-
-
-def _run_tool(ctx: ToolContext, name: str, tool_input: dict) -> tuple[dict, bool]:
-    tool_def = TOOL_REGISTRY.get(name)
-    if tool_def is None:
-        return {"error": f"unknown tool '{name}'"}, True
-    try:
-        return tool_def.handler(ctx, tool_input), False
-    except Exception as exc:  # noqa: BLE001 — tool failures become a tool_result, not a crash
-        return {"error": str(exc)}, True
 
 
 def run_turn(
@@ -129,9 +63,13 @@ def run_turn(
     user_text: str,
     page_context: dict,
     kind: str = "turn",
+    only_if_new: bool = False,
 ) -> dict:
+    """`only_if_new` makes the turn a no-op once the conversation already has messages. The check runs
+    under the conversation lock, so two greetings fired at once (a reload during the first one) produce
+    one greeting, not two."""
     with _lock_for(conversation.id):
-        return _run_turn_locked(session, profile, conversation, user_text, page_context, kind)
+        return _run_turn_locked(session, profile, conversation, user_text, page_context, kind, only_if_new)
 
 
 def _run_turn_locked(
@@ -141,103 +79,28 @@ def _run_turn_locked(
     user_text: str,
     page_context: dict,
     kind: str,
+    only_if_new: bool = False,
 ) -> dict:
+    ctx = ToolContext(session=session, profile=profile, conversation=conversation, page_context=page_context)
+    graph = build_graph(ctx)  # raises AgentNotConfiguredError before anything is checkpointed
+    if only_if_new and (graph.get_state({"configurable": {"thread_id": str(conversation.id)}}).values or {}).get("messages"):
+        return {"conversation_id": conversation.id, "reply_text": None, "ui_actions": []}
+    conversation.turn_count += 1  # lets the upgrade tools tell "proposed earlier" from "asked just now"
+    session.add(conversation)
+    session.commit()
+    score_before = profile.search_rank_score
+
     context_block = build_context_block(profile, page_context, conversation)
-    _persist_message(
-        session,
-        conversation.id,
-        "user",
-        [
-            {"type": "text", "text": context_block},
-            {"type": "text", "text": user_text},
-        ],
-        kind=kind,
+    if (page_context or {}).get("route", "").startswith("/onboarding/"):
+        context_block += f", {onboarding.summary_line(session, profile)}"  # where onboarding stands, without a tool call
+
+    result = graph.invoke(
+        turn_input(user_text, context_block, kind),
+        run_config(conversation.id, profile.id),
     )
 
-    client = get_client()
-    tools = _tool_schemas()
-    ui_actions: list[dict] = []
-    reply_text = ""
-    score_before = profile.search_rank_score
-    detected_outcome: str | None = None
-
-    for _round in range(AGENT_MAX_TOOL_ROUNDS):
-        messages = _load_history(session, conversation.id)
-        create_kwargs = dict(
-            model=AGENT_MODEL,
-            max_tokens=2048,
-            system=[{"type": "text", "text": STATIC_SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}],
-            messages=messages,
-        )
-        if tools:
-            create_kwargs["tools"] = tools
-        response = client.messages.create(**create_kwargs)
-        content_blocks = [block.model_dump() for block in response.content]
-        _persist_message(
-            session,
-            conversation.id,
-            "assistant",
-            content_blocks,
-            stop_reason=response.stop_reason,
-            model=response.model,
-            usage=response.usage,
-        )
-
-        text_blocks = [b["text"] for b in content_blocks if b["type"] == "text"]
-        if text_blocks:
-            reply_text = "\n".join(text_blocks)
-
-        if response.stop_reason == "pause_turn":
-            continue  # a server tool (e.g. web_search) needs another round; no tool_result to give
-
-        tool_use_blocks = [b for b in content_blocks if b["type"] == "tool_use"]
-        if not tool_use_blocks:
-            break
-
-        ctx = ToolContext(session=session, profile=profile, conversation=conversation, page_context=page_context)
-        tool_results = []
-        invocations = []
-        for block in tool_use_blocks:
-            start = time.monotonic()
-            result, is_error = _run_tool(ctx, block["name"], block["input"])
-            latency_ms = int((time.monotonic() - start) * 1000)
-
-            tool_def = TOOL_REGISTRY.get(block["name"])
-            if tool_def and tool_def.is_ui_action and not is_error:
-                ui_actions.append({"type": block["name"], "input": block["input"], "result": result})
-
-            tool_results.append(
-                {
-                    "type": "tool_result",
-                    "tool_use_id": block["id"],
-                    "content": [{"type": "text", "text": json.dumps(result)}],
-                    "is_error": is_error,
-                }
-            )
-            invocations.append((block, result, is_error, latency_ms))
-
-            if not is_error:
-                if block["name"] == "confirm_and_upgrade_to_pro" and result.get("upgraded"):
-                    detected_outcome = "converted"
-                elif block["name"] == "start_pro_trial" and result.get("trial_started") and detected_outcome != "converted":
-                    detected_outcome = "trial_started"
-
-        result_message = _persist_message(session, conversation.id, "user", tool_results, kind="tool_results")
-
-        for block, result, is_error, latency_ms in invocations:
-            session.add(
-                AgentToolInvocation(
-                    conversation_id=conversation.id,
-                    message_id=result_message.id,
-                    tool_name=block["name"],
-                    tool_use_id=block["id"],
-                    input=block["input"],
-                    result=result,
-                    is_error=is_error,
-                    latency_ms=latency_ms,
-                )
-            )
-        session.commit()
+    ui_actions = list(result["ui_actions"])
+    detected_outcome = result["detected_outcome"]
 
     session.refresh(profile)
     score_after = profile.search_rank_score
@@ -253,7 +116,7 @@ def _run_turn_locked(
     session.add(conversation)
     session.commit()
 
-    return {"conversation_id": conversation.id, "reply_text": reply_text, "ui_actions": ui_actions}
+    return {"conversation_id": conversation.id, "reply_text": result["reply_text"], "ui_actions": ui_actions}
 
 
 GREETING_INSTRUCTION = (
@@ -264,11 +127,12 @@ GREETING_INSTRUCTION = (
     "1-2 sentences; do not repeat this instruction back."
 )
 
-CLAIM_GREETING_INSTRUCTION = (
-    "[The user just arrived at the claim flow's search step — this isn't something they typed.] Greet them "
-    "briefly (1-2 sentences), then immediately act on job #3: call web_search using their known name and location "
-    "right now — don't wait for them to ask. Then call present_candidate_matches with up to 5 real results (or "
-    "skip it and say so plainly if you found none). Do not repeat this instruction back."
+ONBOARDING_GREETING_INSTRUCTION = (
+    "[The user just arrived at onboarding, right after claiming their profile — this isn't something they typed.] "
+    "Greet them in one short sentence, then call get_onboarding_state and carry on from the stage it reports. At the very "
+    "start that is present_known_urls; if onboarding is already further along (a page waiting for an identity check, "
+    "conflicts to settle, details to finish), pick up there instead of starting over. Do not wait to be asked and do not "
+    "repeat this instruction back."
 )
 
 
@@ -278,12 +142,10 @@ def run_greeting(session: Session, profile, conversation: AgentConversation, pag
     naturally gets a fresh greeting instead of staying silent forever after the first visit.
     """
     route = (page_context or {}).get("route", "")
-    instruction = (
-        CLAIM_GREETING_INSTRUCTION
-        if profile.lifecycle_state == "unclaimed" and route.startswith("/claim/")
-        else GREETING_INSTRUCTION
-    )
-    return run_turn(session, profile, conversation, instruction, page_context, kind="auto_greeting")
+    in_onboarding = profile.lifecycle_state != "unclaimed" and route.startswith("/onboarding/") and profile.onboarding_completed_at is None
+    instruction = ONBOARDING_GREETING_INSTRUCTION if in_onboarding else GREETING_INSTRUCTION
+    # The onboarding greeting also starts the flow, so it must happen once however many times the page opens.
+    return run_turn(session, profile, conversation, instruction, page_context, kind="auto_greeting", only_if_new=in_onboarding)
 
 
 def run_tour_start(session: Session, profile, conversation: AgentConversation, page_context: dict) -> dict:
@@ -313,14 +175,6 @@ def run_tour_start(session: Session, profile, conversation: AgentConversation, p
 
         ctx = ToolContext(session=session, profile=profile, conversation=conversation, page_context=page_context)
         steps = build_tour_steps(ctx)
-
-        _persist_message(
-            session,
-            conversation.id,
-            "assistant",
-            [{"type": "text", "text": json.dumps({"tour_batch": [s["id"] for s in steps]})}],
-            kind="tour_batch",
-        )
         return {"steps": steps}
 
 

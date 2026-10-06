@@ -8,7 +8,6 @@ import { greetAgent, resumeAfterHandoff, sendAgentMessage, startTourBatch } from
 import { useAgentUIBridge } from '../../context/AgentUIBridgeContext.jsx'
 import { useAgentPanel, AGENT_PANEL_WIDTH_CSS } from '../../context/AgentPanelContext.jsx'
 
-const HIDDEN_ROUTES = ['/', '/search', '/inbox']
 const POPUP_DURATION_MS = 10000
 
 // Module scope, not component state: resets naturally on a hard page refresh
@@ -43,9 +42,9 @@ function AgentWidget() {
   }, [tourProgress])
 
   const route = location.pathname
-  // /claim/:id/details now embeds its own dedicated agent UI (search, candidate picker,
-  // paginated form with inline suggestions) — the floating widget would just duplicate it.
-  const hidden = HIDDEN_ROUTES.includes(route) || route.startsWith('/claim/') || !profileId
+  // Only on a profile page or an owner dashboard page. Everywhere else it has nothing to say: search, sign-in,
+  // the mailbox and unknown addresses; /onboarding/:id embeds its own docked agent chat next to the cards.
+  const hidden = !/^\/(profile|dashboard)\/\d+/.test(route) || !profileId
   const latestRequestRef = useRef(null)
 
   useEffect(() => {
@@ -278,9 +277,9 @@ function AgentWidget() {
         setDoubtOpen(!action.result?.resolved)
       } else if (action.type === 'escalate_unresolved_doubt') {
         handleSimulatedHandoff(action.result)
-      } else if (action.type === 'confirm_website_url' || action.type === 'present_candidate_matches' || action.type === 'propose_field_updates') {
-        // Claim-assist-only UI actions — handled entirely by the dedicated /claim/:id/details
-        // page itself now, which this widget never mounts on. Nothing to do here.
+      } else if (action.type.startsWith('present_') || action.type === 'propose_field_updates') {
+        // Onboarding-only UI actions — the /onboarding/:id page shows them from its own state, and
+        // this widget is not mounted there. Nothing to do here.
       } else if (action.type === 'propose_review_reply' && action.input?.review_id) {
         // The bridge is a single handler slot per key — with multiple unreplied reviews on
         // screen, every ReviewRow would register under the same literal 'propose_review_reply'

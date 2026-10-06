@@ -1,12 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
-from app.constants import CONNECTION_PLATFORMS, DIRECTORY_PLATFORMS
+from app.auth import require_access
+from app.category_config import config_for
+from app.constants import CLAIMED_STATES, CONNECTION_PLATFORMS, DIRECTORY_PLATFORMS
 from app.db import get_session
 from app.models import Profile
 from app.scoring import compute_onboarding_checklist, compute_score_delta, compute_total_score, is_pro_effective
 
-router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
+router = APIRouter(prefix="/api/dashboard", tags=["dashboard"], dependencies=[Depends(require_access)])
 
 
 def _reviews_status(cat, profile):
@@ -21,8 +23,9 @@ def _profile_completion_status(cat, profile):
 
 
 def _connections_status(cat, profile):
-    connected = sum(1 for c in profile.connections if c.get("is_connected"))
-    return f"{connected} of {len(CONNECTION_PLATFORMS)} connections"
+    total = len(config_for(profile).slots("social")) or len(CONNECTION_PLATFORMS)
+    connected = total - len(cat["opportunities"])
+    return f"{connected} of {total} connections"
 
 
 def _web_analytics_status(cat, profile):
@@ -33,8 +36,9 @@ def _web_analytics_status(cat, profile):
 
 
 def _listings_status(cat, profile):
-    published = sum(1 for p in profile.directory_listings.get("platforms", []) if p.get("is_published"))
-    return f"{published} of {len(DIRECTORY_PLATFORMS)} platforms published"
+    total = len(config_for(profile).slots("directory")) or len(DIRECTORY_PLATFORMS)
+    published = total - len(cat["opportunities"])
+    return f"{published} of {total} platforms published"
 
 
 STATUS_LINE_BUILDERS = {
@@ -49,6 +53,7 @@ UPSELL_COPY = {
     "web_analytics": "Boost Your Search Rank by up to {points} points — See Your Website Health Report",
     "listings": "Earn {points} More Search Rank Points — Manage 50+ Profiles for Search, Social, Voice & Map",
 }
+DEFAULT_UPSELL_COPY = "Unlock {label}: earn up to {points} more Search Rank points"
 
 
 def build_dashboard_summary(profile: Profile, session: Session) -> dict:
@@ -66,7 +71,7 @@ def build_dashboard_summary(profile: Profile, session: Session) -> dict:
     rank_position = next((i + 1 for i, p in enumerate(peers) if p.id == profile.id), len(peers))
 
     category_cards = []
-    for key in ("reviews", "profile_completion", "connections", "web_analytics", "listings"):
+    for key in score["section_order"]:
         cat = score["categories"][key]
         if cat["locked"]:
             continue  # shown instead as an upsell_card below until Pro unlocks it
@@ -83,24 +88,18 @@ def build_dashboard_summary(profile: Profile, session: Session) -> dict:
         )
 
     upsell_cards = []
-    for key in ("web_analytics", "listings"):
+    for key in score["section_order"]:
         cat = score["categories"][key]
         if cat["locked"]:
-            upsell_cards.append(
-                {
-                    "key": key,
-                    "label": cat["label"],
-                    "points": cat["max"],
-                    "copy": UPSELL_COPY[key].format(points=cat["max"]),
-                }
-            )
+            copy = UPSELL_COPY.get(key, DEFAULT_UPSELL_COPY).format(points=cat["max"], label=cat["label"])
+            upsell_cards.append({"key": key, "label": cat["label"], "points": cat["max"], "copy": copy})
 
     return {
         "profile": {
             "id": profile.id,
             "name": profile.name,
             "avatar_url": profile.avatar_url,
-            "is_verified": profile.lifecycle_state in ("claimed", "pro"),
+            "is_verified": profile.lifecycle_state in CLAIMED_STATES,
             "category": profile.category,
             "location": profile.location,
             "is_pro": is_pro_effective(profile),

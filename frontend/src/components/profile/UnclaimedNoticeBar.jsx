@@ -1,4 +1,4 @@
-function UnclaimedNoticeBar({ onClaim, claiming }) {
+function UnclaimedNoticeBar({ onClaim }) {
   return (
     <div
       style={{
@@ -13,7 +13,6 @@ function UnclaimedNoticeBar({ onClaim, claiming }) {
       <span style={{ fontSize: 13 }}>ⓘ Unclaimed Profile</span>
       <button
         onClick={onClaim}
-        disabled={claiming}
         style={{
           background: 'var(--brand)',
           color: '#fff',
@@ -22,10 +21,10 @@ function UnclaimedNoticeBar({ onClaim, claiming }) {
           padding: '8px 16px',
           fontWeight: 600,
           fontSize: 13,
-          cursor: claiming ? 'default' : 'pointer',
+          cursor: 'pointer',
         }}
       >
-        {claiming ? 'Sending…' : 'Is this your profile?'}
+        Claim now
       </button>
     </div>
   )

@@ -37,6 +37,7 @@ def register_tool(tool: ToolDef) -> None:
 # module does `from agent.tools import ...` to reach them.
 from agent.tools import (  # noqa: E402,F401
     claim_tools,
+    onboarding_tools,
     retention_tools,
     review_tools,
     scarcity_tools,

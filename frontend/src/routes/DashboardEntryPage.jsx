@@ -1,11 +1,13 @@
 import { Navigate } from 'react-router-dom'
-import { useActiveProfile } from '../context/ActiveProfileContext.jsx'
+import { useAuth } from '../context/AuthContext.jsx'
 
-const DEFAULT_PROFILE_ID = '2' // seeded claimed profile — used when no "viewing as" profile is remembered yet
-
+// /dashboard sends a signed-in agent to their own dashboard (or to onboarding, if they have not finished
+// it), and everyone else to sign in.
 function DashboardEntryPage() {
-  const { activeProfileId } = useActiveProfile()
-  return <Navigate to={`/dashboard/${activeProfileId || DEFAULT_PROFILE_ID}`} replace />
+  const { me } = useAuth()
+  if (me === null) return null
+  if (!me.authenticated) return <Navigate to="/signin?next=/dashboard" replace />
+  return <Navigate to={me.onboarding_completed === false ? `/onboarding/${me.profile_id}` : `/dashboard/${me.profile_id}`} replace />
 }
 
 export default DashboardEntryPage

@@ -42,8 +42,7 @@ def navigate_to(ctx: ToolContext, tool_input: dict) -> dict:
         f"/dashboard/{profile_id}",
         f"/dashboard/{profile_id}/manage",
         f"/dashboard/{profile_id}/upgrade",
-        f"/claim/{profile_id}/details",
-        "/inbox",
+        f"/onboarding/{profile_id}",
     }
     path = tool_input.get("path", "")
     if path not in allowed_paths:

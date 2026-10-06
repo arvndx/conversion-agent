@@ -1,27 +1,16 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import AvatarCircle from '../shared/AvatarCircle.jsx'
 import Badge from '../shared/Badge.jsx'
 import StarRating from '../shared/StarRating.jsx'
-import { claimProfile } from '../../api/profiles.js'
+import { useClaimCard } from '../claim/ClaimCard.jsx'
 
 function ResultCard({ profile }) {
-  const navigate = useNavigate()
-  const [claiming, setClaiming] = useState(false)
+  const { openClaim } = useClaimCard()
   const isUnclaimed = profile.lifecycle_state === 'unclaimed'
-
-  async function onClaim() {
-    setClaiming(true)
-    try {
-      await claimProfile(profile.id)
-      navigate('/inbox')
-    } finally {
-      setClaiming(false)
-    }
-  }
 
   return (
     <div
+      className="result-card"
       style={{
         display: 'flex',
         gap: 16,
@@ -84,7 +73,7 @@ function ResultCard({ profile }) {
           </div>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>
           {profile.review_count > 0 ? (
             <StarRating rating={profile.avg_rating} count={profile.review_count} />
           ) : (
@@ -92,8 +81,7 @@ function ResultCard({ profile }) {
           )}
           {isUnclaimed ? (
             <button
-              onClick={onClaim}
-              disabled={claiming}
+              onClick={() => openClaim({ profileId: profile.id })}
               style={{
                 marginLeft: 'auto',
                 background: 'var(--pro-badge)',
@@ -103,10 +91,10 @@ function ResultCard({ profile }) {
                 borderRadius: 6,
                 fontSize: 13,
                 fontWeight: 600,
-                cursor: claiming ? 'default' : 'pointer',
+                cursor: 'pointer',
               }}
             >
-              {claiming ? 'Claiming…' : 'Claim'}
+              Claim now
             </button>
           ) : (
             <Link
@@ -128,7 +116,7 @@ function ResultCard({ profile }) {
         </div>
       </div>
 
-      <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 70 }}>
+      <div className="result-score" style={{ textAlign: 'right', flexShrink: 0, minWidth: 70 }}>
         <div style={{ fontSize: 11, color: 'var(--ink-soft)' }}>Search Rank Score</div>
         <div style={{ fontWeight: 800, fontSize: 20, color: profile.search_rank_score > 0 ? 'var(--ink)' : 'var(--ink-soft)' }}>
           {profile.search_rank_score > 0 ? profile.search_rank_score : 'Not yet ranked'}

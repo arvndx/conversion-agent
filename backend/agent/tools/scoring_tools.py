@@ -1,8 +1,16 @@
 from sqlmodel import select
 
-from app.constants import CONNECTION_PLATFORMS, PRO_SLOTS_PER_MARKET
+from app.category_config import config_for
+from app.improvement import build_improvement_plan
+from app.constants import CLAIMED_STATES, PRO_SLOTS_PER_MARKET
 from app.models import Profile
-from app.scoring import COMPLETION_FIELDS, compute_score_delta, compute_total_score, is_pro_effective, simulate_total_score
+from app.scoring import (
+    completion_field_keys,
+    compute_score_delta,
+    compute_total_score,
+    is_pro_effective,
+    simulate_total_score,
+)
 from app.slots import count_pro_slot_holders
 
 from agent.tools import ToolContext, ToolDef, register_tool
@@ -27,6 +35,25 @@ def get_upsell_pitch(ctx: ToolContext, tool_input: dict) -> dict:
     }
 
 
+MAX_PLAN_STEPS = 8
+
+
+def get_improvement_plan(ctx: ToolContext, tool_input: dict) -> dict:
+    """Every step that would raise the score with its real point value, biggest first, plus the real
+    Pro before/after. The numbers come from the same what-if scoring the Manage page uses."""
+    plan = build_improvement_plan(ctx.session, ctx.profile)
+    steps = [{k: s[k] for k in ("kind", "label", "points", "key") } | ({"review_id": s["review_id"]} if "review_id" in s else {})
+             for s in plan["items"][:MAX_PLAN_STEPS]]
+    return {
+        "score": plan["score"],
+        "rank": plan["rank"],
+        "steps": steps,
+        "more_steps": max(0, len(plan["items"]) - len(steps)),
+        "points_if_all_done": plan["reachable_points"],
+        "pro": plan["pro"],
+    }
+
+
 def get_peer_benchmark(ctx: ToolContext, tool_input: dict) -> dict:
     profile = ctx.profile
     peers = list(
@@ -35,7 +62,7 @@ def get_peer_benchmark(ctx: ToolContext, tool_input: dict) -> dict:
         )
     )
     pros = [p for p in peers if is_pro_effective(p)]
-    claimed = [p for p in peers if p.lifecycle_state in ("claimed", "pro")]
+    claimed = [p for p in peers if p.lifecycle_state in CLAIMED_STATES]
     rank_above = sum(1 for p in peers if p.search_rank_score > profile.search_rank_score)
     top_pro = max(pros, key=lambda p: p.search_rank_score, default=None)
 
@@ -70,7 +97,7 @@ def simulate_score_change(ctx: ToolContext, tool_input: dict) -> dict:
     # Only the 4 completion fields are meaningful "what if I added X" candidates for
     # `changes` — ignore anything else (e.g. an attempt to fake lifecycle_state) rather
     # than erroring, since this never writes anywhere and the model may pass extras.
-    changes = {k: v for k, v in (tool_input.get("changes") or {}).items() if k in COMPLETION_FIELDS}
+    changes = {k: v for k, v in (tool_input.get("changes") or {}).items() if k in completion_field_keys(ctx.profile)}
     applied = dict(changes)
 
     if tool_input.get("reply_all_reviews"):
@@ -78,7 +105,9 @@ def simulate_score_change(ctx: ToolContext, tool_input: dict) -> dict:
         applied["reply_all_reviews"] = True
 
     if tool_input.get("connect_all"):
-        changes["connections"] = [{"platform_name": p, "is_connected": True} for p in CONNECTION_PLATFORMS]
+        changes["connections"] = [
+            {"platform_name": s["label"], "is_connected": True} for s in config_for(ctx.profile).slots("social")
+        ]
         applied["connect_all"] = True
 
     current = compute_total_score(ctx.profile)
@@ -132,6 +161,18 @@ register_tool(
         "stating any score/points number.",
         input_schema={"type": "object", "properties": {}},
         handler=get_score_snapshot,
+    )
+)
+
+register_tool(
+    ToolDef(
+        name="get_improvement_plan",
+        description="Every step that would raise this profile's score, each with its exact point value (reply to a "
+        "specific review, fill a missing field such as the year started or license, connect a platform, publish a "
+        "listing), biggest first, plus the real before/after score and market rank if they unlocked Pro. Call this to "
+        "tell them what to do next and what each step is worth; never quote points from memory.",
+        input_schema={"type": "object", "properties": {}},
+        handler=get_improvement_plan,
     )
 )
 

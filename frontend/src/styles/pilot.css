@@ -1,0 +1,196 @@
+/* Profile Pilot — the assistant's own visual language, adapted from Nora's: a spectral
+   accent palette reserved for the assistant, a breathing orb, typed "voice" cards and a small
+   set of entrance animations. Everything animated is switched off under prefers-reduced-motion. */
+:root {
+  --p-1: hsl(250 55% 25%);
+  --p-2: hsl(245 70% 55%);
+  --p-3: hsl(320 80% 60%);
+  --p-4: hsl(30 95% 60%);
+  --pilot-surface: #f7f5fc;
+  --pilot-card: #ffffff;
+}
+
+@keyframes pilot-rise {
+  from { opacity: 0; transform: translate3d(0, 14px, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes pilot-breathe {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-4px) scale(1.03); }
+}
+@keyframes pilot-halo {
+  0%, 100% { opacity: 0.35; transform: scale(0.94); }
+  50% { opacity: 0.7; transform: scale(1.06); }
+}
+@keyframes pilot-caret {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+@keyframes pilot-orb-in {
+  0% { opacity: 0; transform: scale(0.3) rotate(-120deg); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes pilot-burst {
+  0% { opacity: 0; transform: scale(0.2); }
+  58% { opacity: 0.75; }
+  100% { opacity: 0; transform: scale(2.6); }
+}
+@keyframes pilot-shard {
+  0% { opacity: 0; transform: rotate(var(--shard-a)) translateX(0) scale(1); }
+  62% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(var(--shard-a)) translateX(var(--shard-d)) scale(0.2); }
+}
+@keyframes pilot-step-ring {
+  0% { box-shadow: 0 0 0 0 rgba(99, 91, 255, 0.25); }
+  70% { box-shadow: 0 0 0 10px rgba(99, 91, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(99, 91, 255, 0); }
+}
+@keyframes pilot-pop {
+  0% { opacity: 0; transform: scale(0.6); }
+  70% { transform: scale(1.12); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes pilot-shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
+
+.pilot-rise { animation: pilot-rise 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.pilot-pop { animation: pilot-pop 320ms ease-out both; }
+.pilot-breathe { animation: pilot-breathe 4.2s ease-in-out infinite; }
+.pilot-halo { animation: pilot-halo 5s ease-in-out infinite; }
+.pilot-orb-in { animation: pilot-orb-in 900ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.pilot-burst { animation: pilot-burst 1.6s ease-out both; }
+.pilot-shard { animation: pilot-shard 1.1s ease-out both; }
+.pilot-step-ring { animation: pilot-step-ring 2.2s ease-out infinite; }
+
+.pilot-caret {
+  display: inline-block;
+  width: 2.5px;
+  height: 1.1em;
+  border-radius: 1px;
+  background: linear-gradient(180deg, var(--p-2), var(--p-3) 60%, var(--p-4));
+  margin-left: 3px;
+  vertical-align: text-bottom;
+  animation: pilot-caret 1.1s steps(1, end) infinite;
+}
+
+.pilot-bubble {
+  background: var(--pilot-card);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  box-shadow: 0 8px 32px rgba(40, 30, 90, 0.07);
+}
+.pilot-bubble--milestone {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.09) 0%, var(--pilot-card) 100%);
+  border-color: rgba(245, 158, 11, 0.38);
+}
+
+.pilot-voice {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.1px;
+}
+.pilot-voice strong { font-weight: 800; }
+/* Long agent-written replies read better lighter than the short scripted lines. */
+.pilot-voice--long { font-size: 0.97rem; font-weight: 500; line-height: 1.55; }
+.pilot-voice--long strong { font-weight: 700; }
+.pilot-voice-sub { margin: 10px 0 0; font-size: 0.86rem; line-height: 1.5; color: var(--ink-soft); }
+
+.pilot-gradient-text {
+  background: linear-gradient(135deg, var(--p-2) 0%, var(--p-3) 55%, var(--p-4) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.pilot-eyebrow {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: rgba(214, 51, 132, 0.1);
+  color: var(--p-3);
+}
+
+.pilot-action {
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  padding: 14px 20px;
+  font-size: 0.94rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  color: #fff;
+  background: linear-gradient(135deg, var(--p-2), var(--p-3));
+  box-shadow: 0 8px 22px -8px rgba(99, 91, 255, 0.6);
+  transition: transform 0.12s ease, filter 0.12s ease, opacity 0.12s ease;
+}
+.pilot-action:hover:not(:disabled) { filter: brightness(1.05); transform: translateY(-1px); }
+.pilot-action:active:not(:disabled) { transform: scale(0.98); }
+.pilot-action:disabled { opacity: 0.4; cursor: default; }
+.pilot-action--quiet {
+  background: #fff;
+  color: var(--ink-soft);
+  border: 1.5px solid var(--border);
+  box-shadow: none;
+  font-weight: 600;
+}
+.pilot-action--quiet:hover:not(:disabled) { color: var(--ink); border-color: var(--p-2); }
+
+.pilot-chip {
+  border: 1.5px solid var(--border);
+  background: #fff;
+  color: var(--ink-soft);
+  border-radius: 999px;
+  padding: 6px 13px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+.pilot-chip:hover { border-color: var(--p-2); color: var(--ink); }
+.pilot-chip[aria-pressed='true'] {
+  border-color: transparent;
+  color: #fff;
+  background: linear-gradient(135deg, var(--p-2), var(--p-3));
+}
+
+.pilot-shimmer {
+  background: linear-gradient(90deg, #ececf4 0px, #f8f8fc 100px, #ececf4 200px);
+  background-size: 400px 100%;
+  animation: pilot-shimmer 1.4s linear infinite;
+  border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pilot-rise, .pilot-pop, .pilot-breathe, .pilot-halo, .pilot-orb-in, .pilot-burst, .pilot-shard,
+  .pilot-step-ring, .pilot-shimmer { animation: none !important; }
+  .pilot-caret { animation: none; opacity: 1; }
+}
+
+/* Docked assistant panel (right-hand side); stacks beneath the page on narrow screens. */
+.pilot-layout { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+.pilot-side {
+  width: 25%;
+  min-width: 320px;
+  max-width: 440px;
+  flex-shrink: 0;
+  background: #fafafa;
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+@media (max-width: 860px) {
+  .pilot-layout { flex-direction: column; }
+  .pilot-side { width: 100%; max-width: none; min-width: 0; height: 42vh; border-left: none; border-top: 1px solid var(--border); }
+}

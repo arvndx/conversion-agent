@@ -11,50 +11,25 @@ export function scrollToAndFlash(target) {
   input?.focus()
   el.style.transition = 'box-shadow 0.2s ease'
   el.style.boxShadow = '0 0 0 3px var(--brand)'
-  el.style.borderRadius = el.style.borderRadius || '8px'
+  if (parseFloat(getComputedStyle(el).borderTopLeftRadius) === 0) el.style.borderRadius = '8px'
   setTimeout(() => {
     el.style.boxShadow = 'none'
   }, 1400)
 }
 
 function PointBadge({ points }) {
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        top: -10,
-        right: 16,
-        background: 'linear-gradient(135deg, #16a34a, #22c55e)',
-        color: '#fff',
-        fontSize: 11.5,
-        fontWeight: 800,
-        borderRadius: 999,
-        padding: '4px 11px',
-        boxShadow: '0 3px 8px rgba(22,163,74,0.35)',
-      }}
-    >
-      +{points} pts
-    </div>
-  )
+  return <div className="suggest__badge">+{points} pts</div>
 }
 
 export function SuggestionCard({ points, children, actionLabel, onAction }) {
   return (
-    <div
-      style={{
-        position: 'relative',
-        background: 'linear-gradient(135deg, #f8f6ff, #f0edff)',
-        border: '1.5px solid #e0d9ff',
-        borderRadius: 12,
-        padding: '13px 15px',
-        marginBottom: 16,
-      }}
-    >
+    <div className="suggest">
       <PointBadge points={points} />
-      <div style={{ fontSize: 13, color: 'var(--ink)', marginBottom: 10, paddingRight: 30, lineHeight: 1.45 }}>{children}</div>
-      <button onClick={onAction} className="agent-btn-primary" style={{ padding: '6px 14px', fontSize: 12 }}>
-        {actionLabel}
-      </button>
+      <div className="suggest__kicker">💡 Quick win</div>
+      <div className="suggest__text">{children}</div>
+      <div>
+        <button onClick={onAction} className="btn btn--primary btn--sm">{actionLabel}</button>
+      </div>
     </div>
   )
 }
@@ -65,49 +40,22 @@ export function ReviewSuggestionCard({ items, onReply }) {
   if (!item) return null
 
   return (
-    <div
-      style={{
-        position: 'relative',
-        background: 'linear-gradient(135deg, #f8f6ff, #f0edff)',
-        border: '1.5px solid #e0d9ff',
-        borderRadius: 12,
-        padding: '13px 15px',
-        marginBottom: 16,
-      }}
-    >
+    <div className="suggest">
       <PointBadge points={item.points} />
-      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand)', marginBottom: 4 }}>
-        Unreplied review {items.length > 1 ? `(${index + 1} of ${items.length})` : ''}
-      </div>
-      <div style={{ fontSize: 13, color: 'var(--ink)', marginBottom: 10, paddingRight: 30, lineHeight: 1.45 }}>
+      <div className="suggest__kicker">Unreplied review {items.length > 1 ? `(${index + 1} of ${items.length})` : ''}</div>
+      <div className="suggest__text">
         <strong>{item.reviewer_name}</strong> — "{item.review_body}"
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="suggest__actions">
         {items.length > 1 ? (
-          <div style={{ display: 'flex', gap: 4 }}>
-            <button
-              onClick={() => setIndex((i) => (i - 1 + items.length) % items.length)}
-              className="agent-btn-secondary"
-              style={{ padding: '5px 9px', fontSize: 12 }}
-              aria-label="Previous suggestion"
-            >
-              ←
-            </button>
-            <button
-              onClick={() => setIndex((i) => (i + 1) % items.length)}
-              className="agent-btn-secondary"
-              style={{ padding: '5px 9px', fontSize: 12 }}
-              aria-label="Next suggestion"
-            >
-              →
-            </button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={() => setIndex((i) => (i - 1 + items.length) % items.length)} className="btn btn--ghost btn--sm" aria-label="Previous suggestion">←</button>
+            <button onClick={() => setIndex((i) => (i + 1) % items.length)} className="btn btn--ghost btn--sm" aria-label="Next suggestion">→</button>
           </div>
         ) : (
           <span />
         )}
-        <button onClick={() => onReply(item.review_id)} className="agent-btn-primary" style={{ padding: '6px 14px', fontSize: 12 }}>
-          Reply
-        </button>
+        <button onClick={() => onReply(item.review_id)} className="btn btn--primary btn--sm">Reply</button>
       </div>
     </div>
   )

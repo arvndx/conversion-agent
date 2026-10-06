@@ -15,18 +15,14 @@ class AgentNotConfiguredError(Exception):
     """Raised when a live Anthropic call is attempted with no API key set."""
 
 
-_client = None
-
-
-def get_client():
-    global _client
+def get_chat_model(**kwargs):
+    """A ChatAnthropic bound to the configured model. Raises AgentNotConfiguredError
+    (-> a clean 503 at the route layer) when no API key is set."""
     if not ANTHROPIC_API_KEY:
         raise AgentNotConfiguredError("ANTHROPIC_API_KEY is not set")
-    if _client is None:
-        import anthropic
+    from langchain_anthropic import ChatAnthropic  # local import: keeps app startup light without a key
 
-        _client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-    return _client
+    return ChatAnthropic(model=AGENT_MODEL, api_key=ANTHROPIC_API_KEY, **kwargs)
 
 
 def is_configured() -> bool:

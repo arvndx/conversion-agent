@@ -1,53 +1,40 @@
+import Panel from '../shared/Panel.jsx'
 import ProgressBar from '../shared/ProgressBar.jsx'
 import { CATEGORY_META, CATEGORY_ORDER } from '../../constants/categories.js'
 
 function ScoreBreakdownPanel({ score, totalUnlock, onUnlock }) {
   return (
-    <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: '#fff', padding: 20 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
-        <h3 style={{ margin: 0, fontSize: 16 }}>Search Rank Score Breakdown</h3>
-        <span style={{ fontWeight: 800, fontSize: 20 }}>
-          {score.total} / {score.max_possible}
-        </span>
-      </div>
-
+    <Panel
+      icon="🎯" tint="#efecff" title="Score Breakdown" subtitle="Search Rank Score"
+      aside={<span className="score-total"><b>{score.total}</b><span>/ {score.max_possible}</span></span>}
+    >
       {totalUnlock?.available && (
-        <div
-          style={{
-            background: 'linear-gradient(135deg, #fffbeb, #fef3c7)',
-            border: '1.5px solid #fde68a',
-            borderRadius: 12,
-            padding: '12px 14px',
-            marginBottom: 16,
-          }}
-        >
-          <div style={{ fontSize: 13, color: 'var(--ink)', marginBottom: 8, lineHeight: 1.45 }}>
+        <div className="unlock-box">
+          <p>
             👑 Unlocking Pro adds <strong>+{totalUnlock.points} points</strong> — moving you from rank {totalUnlock.rank_from} to rank{' '}
             <strong>{totalUnlock.rank_to}</strong> of {totalUnlock.rank_total} in your market.
-          </div>
-          <button onClick={onUnlock} className="agent-btn-primary" style={{ padding: '6px 14px', fontSize: 12 }}>
-            Unlock with Pro
-          </button>
+          </p>
+          <button onClick={onUnlock} className="btn btn--pro btn--sm">Unlock with Pro</button>
         </div>
       )}
 
       {CATEGORY_ORDER.map((key) => {
         const cat = score.categories[key]
+        const color = CATEGORY_META[key].color
         return (
-          <div key={key} style={{ marginBottom: 16, opacity: cat.locked ? 0.6 : 1 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 4 }}>
-              <span>
-                {CATEGORY_META[key].label}
-                {cat.locked && ' 🔒'}
-              </span>
-              <span>
-                {cat.earned} / {cat.max}
-                {cat.locked && ' — unlocks with Pro'}
+          <div key={key} className={`score-row${cat.locked ? ' score-row--locked' : ''}`}>
+            <div className="score-row__top">
+              <span className="score-row__dot" style={{ background: color }} />
+              <span className="score-row__label">{CATEGORY_META[key].label}</span>
+              {cat.locked && <span className="chip-pro">🔒 Pro</span>}
+              <span className="score-row__pts">
+                {cat.earned}<small> / {cat.max}</small>
               </span>
             </div>
-            <ProgressBar percent={(cat.earned / cat.max) * 100} color={CATEGORY_META[key].color} />
+            <ProgressBar percent={(cat.earned / cat.max) * 100} color={color} />
+            {cat.locked && <div className="todo-list" style={{ marginTop: 8 }}><span className="panel__sub">Unlocks with Pro</span></div>}
             {cat.opportunities.length > 0 && (
-              <ul style={{ fontSize: 12, color: 'var(--ink-soft)', margin: '6px 0 0', paddingLeft: 18 }}>
+              <ul className="todo-list">
                 {cat.opportunities.map((op) => (
                   <li key={op}>{op}</li>
                 ))}
@@ -56,7 +43,7 @@ function ScoreBreakdownPanel({ score, totalUnlock, onUnlock }) {
           </div>
         )
       })}
-    </div>
+    </Panel>
   )
 }
 

@@ -1,10 +1,9 @@
-# ClearRank Conversion Agent
+# Profile Pilot (the agent)
 
-A conversational agent embedded across the app that tours features, answers
-questions, pitches Pro honestly, helps unclaimed users through claiming, drafts
-review replies, and nudges users by email — all grounded in live data from
-`app/`, never invented numbers. Lives entirely in this `agent/` package,
-isolated from the core CRUD app in `backend/app/`.
+A conversational agent embedded across the app: it onboards a newly claimed owner, tours features, answers
+questions, pitches Pro honestly, drafts review replies and nudges by email — all grounded in live data from
+`app/`, never invented numbers. It lives entirely in this `agent/` package, isolated from the core app in
+`backend/app/`; only `app/main.py` wires the two together.
 
 ## Setup
 
@@ -14,49 +13,65 @@ Add your key to `backend/.env`:
 ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-The rest of the app works with no key set — only agent endpoints 503 until
-one is added (`GET /api/agent/status` reports `{"configured": false}` in the
-meantime).
+The rest of the app works with no key set — agent endpoints return 503 until one is added
+(`GET /api/agent/status` reports `{"configured": false}` meanwhile). Other settings: `AGENT_MODEL`,
+`AGENT_MAX_TOOL_ROUNDS` (default 6), `AGENT_WEB_SEARCH_MAX_USES`, optional Langfuse keys.
 
 ## Running it without the frontend
 
-**Interactive REPL** — chat with the real agent against real seeded data from
-a terminal:
+**Interactive REPL** — chat with the real agent against seeded data from a terminal:
 
 ```
 cd backend && .venv/bin/python -m agent.debug_repl --profile-id 2
 ```
 
-**Scripted scenarios** — a handful of canned multi-turn conversations that
-exercise the main flows (tour, upsell, what-if simulation, a full market
-refusing an upgrade, review-reply drafting, claim-assist, and an ineligible
-handoff request). Prints the full transcript including every tool call and
-result, so you can verify by eye that every stated number traces back to a
-tool call and that nothing acts without explicit confirmation:
+**Scripted scenarios** — canned multi-turn conversations against the real model (real API calls, real
+database). They print the full transcript with every UI action, so you can check by eye that each stated
+number traces to a tool call and that nothing acts without an explicit yes:
 
 ```
-cd backend && .venv/bin/python -m agent.scenarios                    # all of them
-cd backend && .venv/bin/python -m agent.scenarios --scenario upsell   # just one
+cd backend && .venv/bin/python -m agent.scenarios                                  # all of them
+cd backend && .venv/bin/python -m agent.scenarios --scenario onboarding_conflicts   # one
 ```
 
-Run this after any change to `prompts.py` or the tools.
+Scenarios: `tour`, `upsell`, `what_if`, `scarcity_full_market`, `review_reply`, `handoff_ineligible`, and the
+onboarding ones — `onboarding_confirm_urls` (reads real pages), `onboarding_no_urls_search`,
+`onboarding_name_mismatch`, `onboarding_conflicts`, `after_onboarding_plan`. The onboarding scenarios claim a
+demo professional directly (the email code is not what is tested) and play the owner's clicks between turns.
+Run `POST /api/reset-demo` first, and run the scenarios after any change to `prompts.py` or the tools.
 
 ## How a turn works
 
-`orchestrator.py::run_turn()` — a manual loop over `client.messages.create`
-(not the Anthropic SDK's Tool Runner, which doesn't expose its message history
-and has gaps around `pause_turn`; a manual loop keeps everything replayable).
-Each round: call the API with the full tool set (Claude's hosted `web_search`
-plus every tool in `TOOL_REGISTRY`), persist the raw response verbatim, run any
-custom tool calls, persist results, loop until there are none left. Every
-message — including tool calls and results — is stored in `AgentMessage`, so a
-conversation can be fully replayed or inspected later via
-`GET /api/agent/conversations/{profile_id}`.
+The agent is a LangGraph `StateGraph` (`graph.py`): `model` (Claude with a cached static system prompt and the
+last 20 whole turns) ⇄ `tools` (runs the tools in `TOOL_REGISTRY`, collects `ui_actions` for the frontend, and
+writes an `AgentToolInvocation` audit row per call). Claude's hosted `web_search` is also available. History is
+the graph state, persisted by a Postgres checkpointer (thread id = `AgentConversation.id`), and the graph is
+compiled per request so tool handlers close over that request's DB session and profile.
+`orchestrator.py::run_turn()` is the entry point (per-conversation locks stop two overlapping turns from
+overwriting each other's checkpoint); the per-turn context block (route, profile, onboarding stage) goes in the
+human message so the system prompt stays cacheable.
 
-`run_greeting()` fires a low-key proactive turn the first time a profile's
-conversation sees a given route (tracked in `AgentConversation.greeted_routes`)
-— this is how the agent notices an unreplied review or a competitor taking a
-scarce Pro slot without the user asking.
+`run_greeting()` fires a low-key proactive turn when a page opens. On `/onboarding/<id>` it starts onboarding
+from the current stage and is idempotent (a second greeting while the first runs, or after a reload, does
+nothing). Elsewhere it is how the agent notices an unreplied review or a rival taking a scarce Pro slot.
+
+## What the agent does and does not decide
+
+- **Onboarding** (`tools/onboarding_tools.py`, rules in `app/onboarding.py`): the tools read state and act
+  (show URL cards, search, read the confirmed pages, merge, show conflicts, complete). The owner's own decisions
+  — yes/no on a URL, "is this you?", a conflict choice — are recorded only by their clicks over REST; no tool
+  makes them. The service refuses anything out of order (reading an unconfirmed URL, completing with a
+  conflict open) and returns an `{"error": ...}` the model can read.
+- **After onboarding:** `get_improvement_plan` gives every step that raises the score with its exact points and
+  the real Pro before/after; the prompt has the agent say the score and rank, the top steps and the Pro case in
+  one message, then offer the tour.
+- **Paid actions** (`tools/upgrade_tools.py`): the first call to upgrade or start a trial only records a proposal and
+  returns the price and terms; it runs only when called again with `confirmed=true` in a LATER user turn
+  (`AgentConversation.turn_count` / `pending_action`). "Upgrade me" alone is a request, not consent to a price.
+- **Drafts** (`tools/claim_tools.py`): the agent may draft only bio, specialities and service area; anything else
+  (year started, awards, achievements, title, license, address) is refused so facts are never invented.
+- Page text and search results are data, never instructions; extraction (`extraction.py`) is a forced structured
+  tool call that raises on failure instead of silently returning nothing.
 
 ## Adding a tool
 
@@ -86,11 +101,11 @@ pattern as `POST /api/reset-demo`.
 ## Known limitations (demo-scoped, on purpose)
 
 - Conversation history sent to the model is windowed to the last
-  `MAX_HISTORY_TURNS` turns (see `orchestrator.py`) so a long-running demo
+  `MAX_HISTORY_TURNS` turns (see `graph.py`) so a long-running demo
   conversation doesn't grow the request unboundedly. Older turns are still in
   the database, just not replayed into the model.
-- `fetch_and_extract_website`'s phone/hours extraction is regex/heuristic, not
-  a real HTML-structure-aware parser — fine for a demo, would need real
-  business-listing parsing logic for production use.
+- Scraping (`app/scraping/`) is best effort: login-gated sites (Facebook, LinkedIn) are reported as blocked,
+  Google Maps shows a limited view to headless browsers, and Cloudflare-protected sites need the `OXYLAB_*`
+  settings. Reviews are deliberately not scraped.
 - The "nearby market" grouping (`MARKET_REGIONS`) is a hardcoded state-level
   lookup, not real geo-distance.

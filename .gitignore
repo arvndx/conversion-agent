@@ -1,8 +1,13 @@
 backend/.venv/
 backend/clearrank.db
+backend/agent_checkpoints.db
+backend/agent_checkpoints.db-shm
+backend/agent_checkpoints.db-wal
+backend/.pytest_cache/
 backend/.env
 backend/__pycache__/
 backend/**/__pycache__/
 frontend/node_modules/
 frontend/dist/
 .claude/
+.DS_Store

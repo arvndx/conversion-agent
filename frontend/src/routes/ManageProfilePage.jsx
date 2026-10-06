@@ -3,7 +3,10 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import Sidebar from '../components/layout/Sidebar.jsx'
 import AppTopBar from '../components/layout/AppTopBar.jsx'
 import PromoBanner from '../components/layout/PromoBanner.jsx'
-import EditableField from '../components/manage/EditableField.jsx'
+import FieldGroups from '../components/fields/FieldGroups.jsx'
+import ProfileField from '../components/fields/ProfileField.jsx'
+import ProfileMeter from '../components/fields/ProfileMeter.jsx'
+import Panel from '../components/shared/Panel.jsx'
 import ConnectionsToggleList from '../components/manage/ConnectionsToggleList.jsx'
 import DirectoryListingsSection from '../components/manage/DirectoryListingsSection.jsx'
 import AnalyticsReadout from '../components/manage/AnalyticsReadout.jsx'
@@ -34,7 +37,7 @@ function ManageProfilePage() {
   function reload() {
     getManage(profileId)
       .then(setData)
-      .catch(() => setError('not-claimed'))
+      .catch((e) => e.status !== 401 && setError('not-claimed'))
   }
 
   useEffect(() => {
@@ -49,7 +52,8 @@ function ManageProfilePage() {
 
   if (error || !data) return null
 
-  const { profile, score, suggestions } = data
+  const { profile, score, suggestions, fields, slots } = data
+  const filledFields = fields.filter((f) => profile[f.key]).length
 
   async function saveField(field, value) {
     const result = await updateProfile(profileId, { [field]: value })
@@ -82,31 +86,17 @@ function ManageProfilePage() {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div className="owner-shell">
       <Sidebar profileId={profileId} onboarding={null} />
 
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="app-main">
         <PromoBanner />
         <AppTopBar
           title="Manage Profile"
           currentProfile={dashboardProfile}
           actions={
             profile.lifecycle_state !== 'pro' && (
-              <button
-                onClick={() => navigate(`/dashboard/${profileId}/upgrade`)}
-                data-agent-target="manage-upgrade-button"
-                style={{
-                  background: 'linear-gradient(135deg, #f5b301, var(--pro-badge))',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 999,
-                  padding: '8px 16px',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(217, 119, 6, 0.3)',
-                }}
-              >
+              <button className="btn btn--pro btn--sm" onClick={() => navigate(`/dashboard/${profileId}/upgrade`)} data-agent-target="manage-upgrade-button">
                 👑 Upgrade to Pro
               </button>
             )
@@ -114,54 +104,45 @@ function ManageProfilePage() {
         />
 
         {searchParams.get('justClaimed') === '1' && (
-          <div style={{ background: '#dcfce7', color: '#166534', padding: '10px 24px', fontSize: 13 }}>
-            🎉 You've claimed this profile! Fill in the fields below to start earning your Search Rank Score.
+          <div className="notice notice--ok">
+            🎉 Your profile is set up. Here is where you raise your Search Rank Score — a quick tour starts now.
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 20, padding: 24, maxWidth: 1200 }}>
-          <div>
-            <div
-              style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: '#fff', padding: 20, marginBottom: 20 }}
-              data-agent-target="manage-profile-details"
+        <div className="owner-grid owner-grid--manage">
+          <div className="stack">
+            <Panel
+              icon="👤" title="Profile Details" subtitle="What searchers see, and what your Profile Completion score reads."
+              target="manage-profile-details" aside={<ProfileMeter filled={filledFields} total={fields.length} />}
             >
-              <h3 style={{ marginTop: 0, fontSize: 16 }}>Profile Details</h3>
               {suggestions.profile_completion.available && (
                 <SuggestionCard
                   points={suggestions.profile_completion.points}
                   actionLabel="Fill it in"
-                  onAction={() => scrollToAndFlash('field-license_number')}
+                  onAction={() => scrollToAndFlash(`field-${suggestions.profile_completion.field}`)}
                 >
                   {suggestions.profile_completion.label} — a quick win toward your Profile Completion score.
                 </SuggestionCard>
               )}
-              <EditableField label="Phone Number" value={profile.phone_number} onSave={(v) => saveField('phone_number', v)} />
-              <EditableField
-                label="License Number"
-                value={profile.license_number}
-                onSave={(v) => saveField('license_number', v)}
-                target="field-license_number"
-              />
-              <EditableField label="Website URL" value={profile.website_url} onSave={(v) => saveField('website_url', v)} />
-              <EditableField label="Bio" value={profile.bio} onSave={(v) => saveField('bio', v)} multiline />
-            </div>
+              <FieldGroups fields={[{ key: 'phone_number', label: 'Phone Number' }, ...fields]}>
+                {(f) => (
+                  <ProfileField
+                    key={f.key} fieldKey={f.key} label={f.label} value={profile[f.key]} wide={f.wide} inputId={`mf-${f.key}`}
+                    target={f.key === 'phone_number' ? undefined : `field-${f.key}`}
+                    onSave={(v) => saveField(f.key, v)}
+                  />
+                )}
+              </FieldGroups>
+            </Panel>
 
-            <div
-              style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: '#fff', padding: 20, marginBottom: 20 }}
-              data-agent-target="manage-reviews-section"
-            >
-              <h3 style={{ marginTop: 0, fontSize: 16 }}>Reviews</h3>
+            <Panel icon="💬" tint="#e6f7ec" title="Reviews" subtitle="Reply to every review to earn Reviews & Replies points." target="manage-reviews-section">
               {suggestions.reviews.available && (
                 <ReviewSuggestionCard items={suggestions.reviews.items} onReply={(reviewId) => scrollToAndFlash(`review-${reviewId}`)} />
               )}
               <ReviewReplyList profileId={profileId} reviews={profile.reviews} onReplied={reload} />
-            </div>
+            </Panel>
 
-            <div
-              style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: '#fff', padding: 20, marginBottom: 20 }}
-              data-agent-target="manage-connections-section"
-            >
-              <h3 style={{ marginTop: 0, fontSize: 16 }}>Connections</h3>
+            <Panel icon="🔗" tint="#dff6f2" title="Connections" subtitle="Link the profiles customers already use." target="manage-connections-section">
               {suggestions.connections.available && (
                 <SuggestionCard
                   points={suggestions.connections.points}
@@ -171,14 +152,10 @@ function ManageProfilePage() {
                   Connect {suggestions.connections.platform} to boost your Connections score.
                 </SuggestionCard>
               )}
-              <ConnectionsToggleList connections={profile.connections} onToggle={toggleConnection} />
-            </div>
+              <ConnectionsToggleList connections={profile.connections} slots={slots?.social} onToggle={toggleConnection} />
+            </Panel>
 
-            <div
-              style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: '#fff', padding: 20, marginBottom: 20 }}
-              data-agent-target="manage-listings-section"
-            >
-              <h3 style={{ marginTop: 0, fontSize: 16 }}>Listings</h3>
+            <Panel icon="📍" tint="#ffeedd" title="Listings" subtitle="Be found in the directories that matter for your category." target="manage-listings-section">
               {suggestions.listings.available && (
                 <SuggestionCard
                   points={suggestions.listings.points}
@@ -188,14 +165,10 @@ function ManageProfilePage() {
                   Publish your listing on {suggestions.listings.platform} to earn more Listings points.
                 </SuggestionCard>
               )}
-              <DirectoryListingsSection isPro={profile.is_pro} listings={profile.directory_listings} onToggle={toggleListing} />
-            </div>
+              <DirectoryListingsSection locked={Boolean(score.categories.listings?.locked)} slots={slots?.directory} listings={profile.directory_listings} onToggle={toggleListing} />
+            </Panel>
 
-            <div
-              style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: '#fff', padding: 20 }}
-              data-agent-target="manage-analytics-section"
-            >
-              <h3 style={{ marginTop: 0, fontSize: 16 }}>Website Health</h3>
+            <Panel icon="🌐" tint="#e3eeff" title="Website Health" subtitle="How your site looks to search engines and visitors." target="manage-analytics-section">
               {suggestions.web_analytics.available && (
                 <SuggestionCard
                   points={suggestions.web_analytics.points}
@@ -207,12 +180,12 @@ function ManageProfilePage() {
                 </SuggestionCard>
               )}
               <AnalyticsReadout isPro={profile.is_pro} websiteUrl={profile.website_url} websiteAudit={profile.website_audit} />
-            </div>
+            </Panel>
           </div>
 
-          <div>
+          <div className="stack">
             <ScoreBreakdownPanel score={score} totalUnlock={suggestions.total_unlock} onUnlock={() => navigate(`/dashboard/${profileId}/upgrade`)} />
-            {profile.lifecycle_state !== 'pro' && (
+            {!['pro', 'enterprise'].includes(profile.lifecycle_state) && (
               <ProSlotStatus
                 slotStatus={data.slot_status}
                 category={dashboardProfile?.category}

@@ -1,11 +1,13 @@
 import random
 from datetime import datetime, timedelta
 
-from sqlmodel import Session, delete
+from sqlalchemy import text
+from sqlmodel import Session, select
 
-from app.constants import CONNECTION_PLATFORMS, DIRECTORY_PLATFORMS
+from app.constants import CLAIMED_STATES, CONNECTION_PLATFORMS, DIRECTORY_PLATFORMS
 from app.db import engine
-from app.models import MockEmail, Profile, ProSlotWaitlist, ScoreSnapshot
+from app.models import Category, Profile, ProfileLink, ScoreSnapshot, Vertical
+from app.seed_demo_profiles import build_demo_profiles, build_peers, link_rows
 from app.scoring import recompute_and_save_score
 
 CATEGORY = "Dentist"
@@ -169,57 +171,6 @@ def _build_profiles():
                 {"reviewer_name": "Owen B.", "rating": 3, "body": "Average experience overall.", "reply": None},
             ],
             view_count=39,
-        ),
-        # Two unclaimed profiles backed by real, live websites (not *.example.com
-        # placeholders) — for testing the claim-assist agent's actual web_search +
-        # fetch_and_extract_website flow against genuine scraped content. Deliberately
-        # leave website_url/title/bio/business_timing/service_area/awards empty even
-        # though the real site has all of this — that's exactly what claim-assist is
-        # supposed to go find and propose.
-        Profile(
-            name="Amber Ernst",
-            category="Mortgage Loan Officer",
-            location="Davenport, IA",
-            email="amber.ernst@nafinc.com",
-            lifecycle_state="unclaimed",
-            business_name="Amber Ernst Team - New American Funding",
-            tags=["Mortgage Loans", "Home Loans"],
-            reviews=[
-                {
-                    "reviewer_name": "Austin J.",
-                    "rating": 5,
-                    "body": "Very responsive and did everything it took to get us to the closing table.",
-                    "reply": None,
-                },
-                {
-                    "reviewer_name": "Valerie M.",
-                    "rating": 5,
-                    "body": "Excellent communication. Professional knowledge. Personable and polite.",
-                    "reply": None,
-                },
-                {
-                    "reviewer_name": "Sean L T.",
-                    "rating": 5,
-                    "body": "Work really hard — even when you think things aren't possible, they make it happen.",
-                    "reply": None,
-                },
-            ],
-            view_count=44,
-        ),
-        Profile(
-            name="Dr. Ria Sahara",
-            category=CATEGORY,
-            location="Newnan, GA",
-            email="office@newnandental.com",
-            lifecycle_state="unclaimed",
-            business_name="Gentle Dentistry of Newnan, PC",
-            address="37-G Calumet Pkwy #201, Newnan, GA 30263",
-            tags=["Family Dentistry", "Cosmetic Dentistry", "Preventative Dentistry"],
-            reviews=[
-                {"reviewer_name": "Marcus T.", "rating": 5, "body": "Best dentist in Coweta County, very gentle.", "reply": None},
-                {"reviewer_name": "Priya D.", "rating": 4, "body": "Friendly staff, clean office.", "reply": None},
-            ],
-            view_count=31,
         ),
     ]
 
@@ -458,6 +409,47 @@ def _build_generated_profiles():
     ]
 
 
+def _link_taxonomy(session, profiles):
+    """Attach each profile to its Category row (by name) and set its vertical. The category taxonomy
+    must already be seeded (see app/seed_taxonomy.py)."""
+    categories = {c.name: c for c in session.exec(select(Category)).all()}
+    verticals = {v.id: v.name for v in session.exec(select(Vertical)).all()}
+    for profile in profiles:
+        category = categories.get(profile.category)
+        if category is not None and profile.category_id is None:  # demo profiles and peers arrive linked
+            profile.category_id = category.id
+            profile.vertical = verticals.get(category.vertical_id)
+            _fit_directory_listings(profile, category)
+
+
+def _directory_for(category, published_ratio):
+    """directory_listings for a profile in `category` with roughly `published_ratio` of its directory
+    slots published."""
+    slots = [s for s in category.url_slots if s["kind"] == "directory"]
+    published = round(published_ratio * len(slots))
+    return {
+        "platforms": [
+            {"name": slot["label"], "platform": slot["platform"], "is_published": i < published}
+            for i, slot in enumerate(slots)
+        ]
+    }
+
+
+def _fit_directory_listings(profile, category):
+    """The seed builds listings from the generic platform list; re-express them on this category's own
+    directory slots (Zillow, LendingTree, Yelp, ...), keeping roughly the same share published."""
+    slots = [s for s in category.url_slots if s["kind"] == "directory"]
+    old = (profile.directory_listings or {}).get("platforms", [])
+    ratio = sum(1 for p in old if p.get("is_published")) / len(old) if old else 0
+    published = round(ratio * len(slots))
+    profile.directory_listings = {
+        "platforms": [
+            {"name": slot["label"], "platform": slot["platform"], "is_published": i < published}
+            for i, slot in enumerate(slots)
+        ]
+    }
+
+
 def _assign_review_ids(profile):
     for i, review in enumerate(profile.reviews):
         review["id"] = f"r{i}"
@@ -485,16 +477,38 @@ def _backfill_score_history(session, profile, current_total, max_possible):
 
 def seed_demo():
     with Session(engine) as session:
-        session.exec(delete(ScoreSnapshot))
-        session.exec(delete(ProSlotWaitlist))
-        session.exec(delete(MockEmail))
-        session.exec(delete(Profile))
+        # TRUNCATE ... RESTART IDENTITY (not DELETE): Postgres sequences keep counting after a
+        # delete, so without the restart every reset would shift profile ids (2 -> 42 -> 82...) and
+        # break the stable ids the demo, URLs and scenarios rely on. CASCADE also clears every table
+        # with a foreign key to profile (emails, score history, waitlist, market events, handoff
+        # requests, agent conversations and their tool-call logs).
+        session.execute(text("TRUNCATE TABLE profile RESTART IDENTITY CASCADE"))
         session.commit()
 
-        profiles = _build_profiles() + _build_generated_profiles()
+        profiles = _build_profiles() + _build_generated_profiles()  # the dentist category
+        categories = {c.name: c for c in session.exec(select(Category)).all()}
+        verticals = {v.id: v.name for v in session.exec(select(Vertical)).all()}
+        demo_profiles, demo_links = build_demo_profiles(categories, verticals)
+        peers = build_peers(categories, verticals, _make_connections, _make_website_audit, _directory_for)
+        profiles += demo_profiles + peers
+        # Accounts seeded as claimed / Pro / enterprise already exist as finished profiles: they are not
+        # sent through onboarding (only a profile claimed at run time is).
+        now = datetime.utcnow()
+        for profile in profiles:
+            if profile.lifecycle_state in CLAIMED_STATES:
+                profile.claimed_at = profile.claimed_at or now
+                profile.onboarding_completed_at = now
+        _link_taxonomy(session, profiles)
         for profile in profiles:
             _assign_review_ids(profile)
         session.add_all(profiles)
+        session.commit()
+
+        # The demo professionals' known profile URLs (website, Google, Facebook, ...), unconfirmed:
+        # onboarding asks the agent to confirm each before anything is scraped.
+        for profile, pairs in zip(demo_profiles, demo_links):
+            session.refresh(profile)
+            session.add_all(link_rows(profile.id, pairs))
         session.commit()
 
         for profile in profiles:
@@ -504,5 +518,7 @@ def seed_demo():
 
 
 if __name__ == "__main__":
-    seed_demo()
-    print("Seeded 38 demo profiles across 4 markets.")
+    from app.routers.admin import reset_demo_data
+
+    reset_demo_data()
+    print("Reset the database and seeded the taxonomy and demo profiles.")

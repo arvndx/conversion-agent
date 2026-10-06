@@ -11,7 +11,7 @@ function FiltersPanel({
   onClear,
 }) {
   return (
-    <aside style={{ width: 240, flexShrink: 0 }}>
+    <aside className="search-filters" style={{ width: 240, flexShrink: 0 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
         <strong>Filters</strong>
         <button

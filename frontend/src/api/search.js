@@ -1,7 +1,8 @@
 import { get } from './client'
 
-export function searchProfiles({ category, location, service, minRating, minScore, sort } = {}) {
+export function searchProfiles({ keyword, category, location, service, minRating, minScore, sort } = {}) {
   const params = new URLSearchParams()
+  if (keyword) params.set('keyword', keyword)
   if (category) params.set('category', category)
   if (location) params.set('location', location)
   if (service) params.set('service', service)

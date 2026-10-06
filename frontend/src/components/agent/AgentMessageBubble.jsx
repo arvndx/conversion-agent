@@ -1,3 +1,19 @@
+// The assistant writes light markdown: **bold** and `code` are shown, everything else stays plain text.
+const INLINE_RE = /(\*\*[^*]+\*\*|`[^`]+`)/g
+
+function Inline({ text }) {
+  return String(text)
+    .split(INLINE_RE)
+    .filter(Boolean)
+    .map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**') && part.length > 4) return <strong key={i}>{part.slice(2, -2)}</strong>
+      if (part.startsWith('`') && part.endsWith('`') && part.length > 2) {
+        return <code key={i} style={{ background: '#f0edff', borderRadius: 4, padding: '1px 5px', fontSize: '0.92em', wordBreak: 'break-all' }}>{part.slice(1, -1)}</code>
+      }
+      return part
+    })
+}
+
 function AgentMessageBubble({ role, text }) {
   const isUser = role === 'user'
 
@@ -64,7 +80,9 @@ function AgentMessageBubble({ role, text }) {
       >
         ✨
       </div>
-      <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--ink)', whiteSpace: 'pre-wrap', paddingTop: 2 }}>{text}</div>
+      <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--ink)', whiteSpace: 'pre-wrap', paddingTop: 2, minWidth: 0 }}>
+        <Inline text={text} />
+      </div>
     </div>
   )
 }

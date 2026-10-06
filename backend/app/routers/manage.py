@@ -4,8 +4,11 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlmodel import Session, select
 
+from app.auth import require_access
+from app.category_config import config_for
 from app.constants import PRO_SLOTS_PER_MARKET
 from app.db import get_session
+from app.improvement import build_improvement_plan
 from app.models import MarketEvent, Profile, ProSlotWaitlist
 from app.routers.dashboard import build_dashboard_summary
 from app.scoring import compute_total_score, is_pro_effective, recompute_and_save_score
@@ -14,7 +17,7 @@ from app.suggestions import build_suggestions
 
 TRIAL_DURATION_DAYS = 7
 
-router = APIRouter(prefix="/api/profiles", tags=["manage"])
+router = APIRouter(prefix="/api/profiles", tags=["manage"], dependencies=[Depends(require_access)])
 
 EDITABLE_FIELDS = [
     "phone_number",
@@ -77,6 +80,10 @@ def _manage_payload(session: Session, profile: Profile) -> dict:
             "website_audit": profile.website_audit,
             "reviews": profile.reviews,
         },
+        # The category's own Profile Completion fields, in order, so the page lists exactly what is scored.
+        "fields": [{"key": f["key"], "label": f["label"]} for f in config_for(profile).basic_fields],
+        # The category's own social and directory slots: what Connections and Listings are made of.
+        "slots": {kind: [s["label"] for s in config_for(profile).slots(kind)] for kind in ("social", "directory")},
         "score": compute_total_score(profile),
         "slot_status": get_slot_status(session, profile),
         "suggestions": build_suggestions(session, profile),
@@ -87,6 +94,13 @@ def _manage_payload(session: Session, profile: Profile) -> dict:
 def get_manage(profile_id: int, session: Session = Depends(get_session)):
     profile = _get_manageable_or_404(session, profile_id)
     return _manage_payload(session, profile)
+
+
+@router.get("/{profile_id}/improvement-plan")
+def get_improvement_plan(profile_id: int, session: Session = Depends(get_session)):
+    """Every step that would raise the score, with its real point value, plus the real Pro before/after."""
+    profile = _get_manageable_or_404(session, profile_id)
+    return build_improvement_plan(session, profile)
 
 
 @router.patch("/{profile_id}")
@@ -146,7 +160,7 @@ def reply_to_review(
 @router.patch("/{profile_id}/listings")
 def update_listing(profile_id: int, body: dict = Body(...), session: Session = Depends(get_session)):
     profile = _get_manageable_or_404(session, profile_id)
-    if not is_pro_effective(profile):
+    if compute_total_score(profile)["categories"]["listings"]["locked"]:
         raise HTTPException(status_code=403, detail="Upgrade to Pro to manage directory listings")
 
     platform_name = body["platform_name"]
@@ -203,6 +217,8 @@ def perform_upgrade(session: Session, profile: Profile) -> dict:
 def perform_start_trial(session: Session, profile: Profile) -> dict:
     if profile.lifecycle_state != "claimed":
         raise HTTPException(status_code=400, detail="Only claimed (non-Pro) profiles can start a trial")
+    if profile.trial_ends_at and profile.trial_ends_at > datetime.utcnow():
+        raise HTTPException(status_code=400, detail="A free trial is already running")  # no restarting the free week
     if not has_open_slot(session, profile.category, profile.location):
         raise _market_full_error(session, profile)
     profile.trial_ends_at = datetime.utcnow() + timedelta(days=TRIAL_DURATION_DAYS)

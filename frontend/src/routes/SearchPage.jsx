@@ -31,13 +31,13 @@ function SearchPage() {
 
   useEffect(() => {
     setLoading(true)
-    searchProfiles({ category, location, service, minRating, minScore, sort })
+    searchProfiles({ keyword, category, location, service, minRating, minScore, sort })
       .then((data) => {
         setResults(data.results)
         setCount(data.count)
       })
       .finally(() => setLoading(false))
-  }, [category, location, service, minRating, minScore, sort])
+  }, [keyword, category, location, service, minRating, minScore, sort])
 
   function onFilterChange(patch) {
     if ('category' in patch) setCategory(patch.category)
@@ -60,12 +60,12 @@ function SearchPage() {
 
   return (
     <div>
-      <TopNav initialKeyword={keyword} initialLocation={location} />
+      <TopNav initialKeyword={keyword} />
       <Breadcrumb
         items={[{ label: 'Search', to: '/search' }, { label: 'Professional Services' }, { label: 'Results' }]}
       />
 
-      <div style={{ display: 'flex', gap: 24, padding: '0 24px 40px', maxWidth: 1280, margin: '0 auto' }}>
+      <div className="search-layout" style={{ display: 'flex', gap: 24, padding: '0 24px 40px', maxWidth: 1280, margin: '0 auto' }}>
         <FiltersPanel
           categories={filters.categories}
           locations={filters.locations}

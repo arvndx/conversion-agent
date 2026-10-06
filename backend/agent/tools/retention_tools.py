@@ -1,3 +1,5 @@
+from html import escape
+
 from app.leads import is_hot_lead
 from app.models import ExecutiveHandoffRequest, MockEmail
 from app.pricing import get_active_offer as _get_active_offer
@@ -31,9 +33,9 @@ def request_executive_handoff(ctx: ToolContext, tool_input: dict) -> dict:
             to_email=ctx.profile.email,
             subject="We're on it — a ClearRank team member will follow up",
             body_html=(
-                f"<p>Hi {ctx.profile.name},</p>"
+                f"<p>Hi {escape(ctx.profile.name)},</p>"
                 f"<p>Thanks for reaching out. A member of our team will follow up with you shortly to help with: "
-                f"{reason}.</p>"
+                f"{escape(reason)}.</p>"
             ),
             profile_id=ctx.profile.id,
         )

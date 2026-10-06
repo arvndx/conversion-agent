@@ -1,31 +1,10 @@
-import secrets
-
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlmodel import Session, select
 
+from app.constants import CLAIMED_STATES
 from app.db import get_session
-from app.models import MockEmail, Profile
-from app.scoring import is_pro_effective, recompute_and_save_score
-
-CLAIM_DETAIL_FIELDS = [
-    "name",
-    "phone_number",
-    "location",
-    "business_timing",
-    "awards",
-    "title",
-    "bio",
-    "service_area",
-    "email",
-    "website_url",
-    "license_number",
-    "products_services",
-    "specialities",
-    "memberships",
-    "year_started",
-    "achievements",
-    "hobbies",
-]
+from app.models import Profile
+from app.scoring import is_pro_effective
 
 router = APIRouter(prefix="/api", tags=["profiles"])
 
@@ -38,7 +17,7 @@ def _get_or_404(session: Session, profile_id: int) -> Profile:
 
 
 def _to_public_detail(profile: Profile) -> dict:
-    is_claimed_or_pro = profile.lifecycle_state in ("claimed", "pro")
+    is_claimed_or_pro = profile.lifecycle_state in CLAIMED_STATES
     return {
         "id": profile.id,
         "name": profile.name,
@@ -71,7 +50,9 @@ def _to_public_detail(profile: Profile) -> dict:
         "avg_rating": profile.avg_rating,
         "review_count": profile.review_count,
         "search_rank_score": profile.search_rank_score,
-        "otp_verified": profile.otp_verified,
+        "vertical": profile.vertical,
+        "category_id": profile.category_id,
+        "services": profile.services,
     }
 
 
@@ -106,69 +87,3 @@ def get_related(profile_id: int, sort: str = "rating", limit: int = 5, session: 
         }
         for p in others[:limit]
     ]
-
-
-@router.post("/profiles/{profile_id}/claim")
-def claim_profile(profile_id: int, session: Session = Depends(get_session)):
-    profile = _get_or_404(session, profile_id)
-    if profile.lifecycle_state != "unclaimed":
-        raise HTTPException(status_code=400, detail="Profile is already claimed")
-
-    otp = f"{secrets.randbelow(1_000_000):06d}"
-    profile.pending_otp = otp
-    profile.otp_verified = False
-    session.add(profile)
-
-    email = MockEmail(
-        to_email=profile.email,
-        subject="Verify your email to claim your ClearRank profile",
-        body_html=(
-            f"<p>Hi {profile.name},</p>"
-            f"<p>Your profile on ClearRank is getting views but isn't ranking yet. "
-            f"Enter the verification code below to claim it and start managing your Search Rank Score.</p>"
-            f"<p style='font-size:24px;font-weight:700;letter-spacing:4px;'>{otp}</p>"
-        ),
-        profile_id=profile.id,
-    )
-    session.add(email)
-    session.commit()
-    session.refresh(email)
-    return {"mock_email_id": email.id}
-
-
-@router.post("/profiles/{profile_id}/verify-otp")
-def verify_otp(profile_id: int, body: dict = Body(...), session: Session = Depends(get_session)):
-    profile = _get_or_404(session, profile_id)
-    if profile.lifecycle_state != "unclaimed":
-        raise HTTPException(status_code=400, detail="Profile is already claimed")
-    if not profile.pending_otp or body.get("otp") != profile.pending_otp:
-        raise HTTPException(status_code=400, detail="Invalid verification code")
-
-    profile.pending_otp = None
-    profile.otp_verified = True
-    session.add(profile)
-    session.commit()
-    return {"id": profile.id, "otp_verified": True}
-
-
-@router.post("/profiles/{profile_id}/claim-details")
-def submit_claim_details(profile_id: int, body: dict = Body(...), session: Session = Depends(get_session)):
-    profile = _get_or_404(session, profile_id)
-    if profile.lifecycle_state != "unclaimed":
-        raise HTTPException(status_code=400, detail="Profile is already claimed")
-    if not profile.otp_verified:
-        raise HTTPException(status_code=400, detail="Verify your email before completing your profile")
-    if not (body.get("email") or "").strip():
-        raise HTTPException(status_code=400, detail="Email is required")
-    if not (body.get("phone_number") or "").strip():
-        raise HTTPException(status_code=400, detail="Phone number is required")
-
-    for field in CLAIM_DETAIL_FIELDS:
-        value = body.get(field)
-        if value:
-            setattr(profile, field, value)
-
-    profile.lifecycle_state = "claimed"
-    profile.otp_verified = False
-    recompute_and_save_score(session, profile)
-    return _to_public_detail(profile)

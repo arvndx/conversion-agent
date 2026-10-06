@@ -1,0 +1,76 @@
+/* Claim wizard form + card styles (hover/focus states need real CSS, not inline styles). */
+.claim-card {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(16,24,40,0.04), 0 8px 28px rgba(16,24,40,0.07);
+  padding: 28px 30px;
+}
+.claim-input {
+  width: 100%;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 13px;
+  font-size: 14px;
+  font-family: inherit;
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+  box-sizing: border-box;
+}
+.claim-input:hover { border-color: #c7c9f5; }
+.claim-input:focus { border-color: var(--brand); box-shadow: 0 0 0 3.5px rgba(99, 91, 255, 0.13); }
+.claim-btn-primary {
+  background: linear-gradient(135deg, #7c5cff, var(--brand));
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+  box-shadow: 0 2px 8px rgba(99, 91, 255, 0.32);
+}
+.claim-btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(99, 91, 255, 0.4); }
+.claim-btn-primary:active:not(:disabled) { transform: translateY(0); }
+.claim-btn-primary:disabled { opacity: 0.5; cursor: default; transform: none; }
+.claim-btn-secondary {
+  background: #fff;
+  color: var(--ink);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.claim-btn-secondary:hover:not(:disabled) { border-color: var(--brand); background: #faf9ff; }
+.claim-suggestion-box {
+  border: 1.5px solid #e0d9ff;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #f8f6ff, #f0edff);
+  position: relative;
+  overflow: hidden;
+}
+.claim-suggestion-box::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #7c5cff, var(--brand));
+}
+.claim-candidate-card {
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 13px 15px;
+  margin-bottom: 10px;
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.claim-candidate-card:hover { border-color: #c7c9f5; box-shadow: 0 4px 14px rgba(16,24,40,0.06); }
+
+/* ---- claim dialog ------------------------------------------------------------------------------------- */
+.claim-modal { position: relative; overflow-x: hidden; }
+.claim-modal::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 6px; background: linear-gradient(90deg, #8f74ff, #4527d1, #ec4899); }
+.claim-modal__icon { width: 46px; height: 46px; border-radius: 14px; background: linear-gradient(135deg, #f6f4ff, #e6e0ff); display: grid; place-items: center; font-size: 22px; flex-shrink: 0; box-shadow: 0 4px 12px rgba(91, 61, 245, 0.15); }
+.claim-label { display: block; font-size: 12px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: #5b6472; margin: 16px 0 6px; }
+.claim-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; }
+@media (max-width: 520px) { .claim-two { grid-template-columns: minmax(0, 1fr); } }

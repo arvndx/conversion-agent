@@ -4,6 +4,8 @@ pre-generated in one batch by tour_content.py/run_tour_start — this module onl
 the "should we start" signal and the doubt/escalation counters, both plain bookkeeping.
 """
 
+from html import escape
+
 from app.models import ExecutiveHandoffRequest, MockEmail
 
 from agent.tools import ToolContext, ToolDef, register_tool
@@ -65,8 +67,8 @@ def escalate_unresolved_doubt(ctx: ToolContext, tool_input: dict) -> dict:
             to_email=ctx.profile.email,
             subject="A specialist is following up on your question",
             body_html=(
-                f"<p>Hi {ctx.profile.name},</p>"
-                f"<p>We noticed you had a question about: {topic}. A specialist is looking into it now.</p>"
+                f"<p>Hi {escape(ctx.profile.name)},</p>"
+                f"<p>We noticed you had a question about: {escape(topic)}. A specialist is looking into it now.</p>"
             ),
             profile_id=ctx.profile.id,
         )

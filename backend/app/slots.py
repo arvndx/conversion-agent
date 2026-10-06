@@ -11,7 +11,8 @@ def count_pro_slot_holders(session: Session, category: str, location: str) -> in
     profiles = session.exec(
         select(Profile).where(Profile.category == category, Profile.location == location)
     )
-    return sum(1 for p in profiles if is_pro_effective(p))
+    # Enterprise profiles get Pro benefits but never take one of the market's Pro slots.
+    return sum(1 for p in profiles if is_pro_effective(p) and p.lifecycle_state != "enterprise")
 
 
 def has_open_slot(session: Session, category: str, location: str) -> bool:
