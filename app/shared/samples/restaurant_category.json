@@ -1,0 +1,337 @@
+{
+  "bundle_type": "category",
+  "category_id": "restaurant",
+  "note": "Sample category bundle for development. Same structure as the Redis bundle in production. Wording is not approved. Source: plan1.txt A22, A24, A25, A27, A47, A48, A58.",
+  "default_questions": [
+    "Book a table",
+    "View the menu",
+    "Opening hours",
+    "Directions",
+    "Online ordering"
+  ],
+  "topics": [
+    {
+      "id": "menu",
+      "description": "dishes, prices, and what is on the menu. Not a dish's spice level, ingredients or allergens (those are dietary).",
+      "action": "tool",
+      "examples": [
+        "show me your starters",
+        "how much is the paneer tikka",
+        "what main courses do you have"
+      ],
+      "tool": "get_menu"
+    },
+    {
+      "id": "opening_hours",
+      "description": "when the restaurant is open",
+      "action": "tool",
+      "examples": [
+        "what time do you open on Sunday",
+        "are you open on public holidays",
+        "until what time is the kitchen open",
+        "are you open right now"
+      ],
+      "tool": "get_business_info",
+      "field": "opening_hours"
+    },
+    {
+      "id": "booking",
+      "description": "booking a table",
+      "action": "tool",
+      "examples": [
+        "can I book a table for four on Friday",
+        "do you take reservations for tonight",
+        "I'd like a table at 8pm",
+        "is there space for a birthday party this weekend"
+      ],
+      "tool": "get_booking_options"
+    },
+    {
+      "id": "ordering",
+      "description": "takeaway or online orders",
+      "action": "tool",
+      "examples": [
+        "can I order takeaway now",
+        "do you deliver to my area",
+        "can I order online",
+        "how long does takeaway take"
+      ],
+      "tool": "get_business_info",
+      "field": "website"
+    },
+    {
+      "id": "location_directions",
+      "description": "address and how to get there",
+      "action": "tool",
+      "examples": [
+        "where are you located",
+        "how do I get to the restaurant from the station",
+        "what's your address",
+        "is there a bus stop nearby"
+      ],
+      "tool": "get_business_info",
+      "field": "address"
+    },
+    {
+      "id": "parking",
+      "description": "parking and transport",
+      "action": "tool",
+      "examples": [
+        "is there parking",
+        "can I park on the street",
+        "is the car park free",
+        "is parking available after 6pm"
+      ],
+      "tool": "get_business_info",
+      "field": "parking"
+    },
+    {
+      "id": "dietary",
+      "description": "whether a dish is vegetarian or vegan, its spice level, its ingredients and its allergens",
+      "action": "tool",
+      "examples": [
+        "what vegetarian dishes do you have",
+        "is the chicken biryani spicy",
+        "how spicy is the korma",
+        "what's in the vegetable samosa",
+        "does the biryani contain nuts",
+        "is anything gluten-free"
+      ],
+      "tool": "search_menu"
+    },
+    {
+      "id": "dish",
+      "description": "a question about one particular dish: whether it is on the menu or available, or what it costs",
+      "action": "tool",
+      "examples": [
+        "do you have pizza",
+        "is the chicken biryani available",
+        "how much is the paneer tikka",
+        "do you serve dosa",
+        "is butter chicken on the menu"
+      ],
+      "tool": "search_menu"
+    }
+  ],
+  "general_knowledge_allowed": false,
+  "handover_triggers": [
+    {
+      "id": "confused",
+      "text": "The agent cannot understand or answer after one retry."
+    },
+    {
+      "id": "chat_time_over",
+      "threshold_seconds": 300,
+      "text": "The visitor has had the chat open for more than 300 seconds: offer a handover once, then carry on if they decline (A76)."
+    },
+    {
+      "id": "data_missing",
+      "text": "Business data is missing for the question."
+    },
+    {
+      "id": "no_booking_route",
+      "text": "The visitor wants to book or order, and there is no calendar and no booking link."
+    }
+  ],
+  "handover_extra_fields": [],
+  "never_ask": [
+    "payment card numbers",
+    "passwords"
+  ],
+  "guardrails_text": {
+    "ai_notice": "You are chatting with an AI assistant.",
+    "recording_notice": "This chat is recorded, and the business receives the details you share.",
+    "approved_by": null,
+    "approved_on": null,
+    "version": "draft-1"
+  },
+  "teaser_text": "Hi, I'm an AI assistant for {customer_name}. I'm here to help you.",
+  "message_texts": {
+    "ai_busy": "Our chatbot is busy with multiple sessions. So I'm capturing your query and conveying it with {customer_name} directly. {customer_name} will ping you shortly.",
+    "handover_offer": "For better clarification, would you like to convey your query directly with {customer_name}? They will connect with you soon.",
+    "abuse_warning": "Please keep the chat respectful. I can help with questions about {customer_name}.",
+    "handover_sent": "Conveyed your query to {customer_name}. {customer_name} will contact you soon.",
+    "too_long": "That message is too long. Please shorten it and send it again.",
+    "ask_name": "What's your name?",
+    "ask_contact": "What's the best email or phone number to reach you on?",
+    "handover_contact_retry": "That doesn't look right. Please share a valid email address or phone number.",
+    "handover_declined": "No problem. What else can I help you with?",
+    "dish_found": "Yes, we have these:",
+    "dish_not_found": "Sorry, that dish is not available right now.",
+    "menu_intro": "Here is our menu:",
+    "booking_link": "You can book a table here: {url}",
+    "critical_handover_follow": "Would you like to share your name and a phone number so the restaurant can contact you?"
+  },
+  "abuse_check": {
+    "method": "profanity_library",
+    "library": "better-profanity",
+    "blocklist": [],
+    "allowlist": []
+  },
+  "abuse_rules": {
+    "warning_on_strikes": [
+      1,
+      2
+    ],
+    "block_on_strike": 3,
+    "block_minutes_production": 60,
+    "block_minutes_test": 3,
+    "block_scope": "browser_flag_and_session"
+  },
+  "scoring_rules": [
+    {
+      "event": "active_over_4_minutes",
+      "points": 15,
+      "limit_per_session": 1
+    },
+    {
+      "event": "booking_link_click",
+      "points": 10,
+      "limit_per_session": 3
+    },
+    {
+      "event": "other_clickable",
+      "points": 5,
+      "limit_per_session": 2,
+      "session_total_cap": 30
+    },
+    {
+      "event": "asked_for_person",
+      "points": 15,
+      "limit_per_session": 1
+    }
+  ],
+  "idle_close_minutes": 30,
+  "defaults": {
+    "slot_minutes": 15,
+    "bookings_per_slot": 4
+  },
+  "tools": [
+    {
+      "name": "get_menu",
+      "args": [],
+      "returns": "full menu, grouped by section"
+    },
+    {
+      "name": "search_menu",
+      "args": [
+        "query"
+      ],
+      "returns": "matching dishes (fuzzy match within the menu); the full menu if no match"
+    },
+    {
+      "name": "get_business_info",
+      "args": [
+        "field"
+      ],
+      "returns": "one allowed field: display name, phone, email, address, service area, opening hours, timezone or website"
+    },
+    {
+      "name": "get_booking_options",
+      "args": [],
+      "returns": "calendar slots if connected, otherwise the booking link"
+    },
+    {
+      "name": "request_handoff",
+      "args": [
+        "name",
+        "email",
+        "phone",
+        "conversation",
+        "question"
+      ],
+      "returns": "validated handover details for the worker to save"
+    }
+  ],
+  "critical_topics": [
+    {
+      "id": "medical_emergency",
+      "description": "A medical emergency for the visitor or someone with them, now (for example chest pain, trouble breathing, collapse, or a need for an ambulance). A general remark about illness, or a question that is not about the visitor's own situation, is not this.",
+      "reply": "If this is an emergency, please call your local emergency number now.",
+      "action": "handover",
+      "examples": [
+        "my chest hurts and I feel faint",
+        "I can't breathe properly right now",
+        "someone just collapsed here",
+        "I think I'm having a heart attack"
+      ]
+    },
+    {
+      "id": "allergy_food_safety",
+      "description": "An allergy or food-safety concern about a dish the visitor may eat or may already have eaten (for example an allergic reaction, or feeling ill after a meal).",
+      "reply": "For a food allergy, please contact the restaurant directly before you order.",
+      "action": "handover",
+      "examples": [
+        "I'm allergic to nuts, is the korma safe",
+        "I ate the samosa and now my throat is swelling",
+        "I got sick after eating your biryani last night",
+        "is there peanut in the curry? I have a severe allergy"
+      ]
+    }
+  ],
+  "fixed_topic_examples": {
+    "other_on_topic": [
+      "do you do catering for 30 people",
+      "can I host a private party",
+      "do you have gift vouchers"
+    ]
+  },
+  "not_critical_examples": [
+    "everyone is talking about chest pain, let's book a table today",
+    "the news says there is a food poisoning outbreak in the city, are you open?"
+  ],
+  "knowledge_fields": [
+    {
+      "key": "full_name",
+      "label": "Full name"
+    },
+    {
+      "key": "address",
+      "label": "Address"
+    },
+    {
+      "key": "phone",
+      "label": "Contact number"
+    },
+    {
+      "key": "email",
+      "label": "Email"
+    },
+    {
+      "key": "booking_link",
+      "label": "Booking link"
+    },
+    {
+      "key": "order_link",
+      "label": "Order link"
+    },
+    {
+      "key": "opening_hours",
+      "label": "Opening hours"
+    },
+    {
+      "key": "licence",
+      "label": "Licence"
+    },
+    {
+      "key": "menu",
+      "label": "Menu"
+    },
+    {
+      "key": "chef_specials",
+      "label": "Chef's specials"
+    },
+    {
+      "key": "dietary",
+      "label": "Vegetarian dishes"
+    },
+    {
+      "key": "offers",
+      "label": "Current offers"
+    },
+    {
+      "key": "parking",
+      "label": "Parking"
+    }
+  ]
+}

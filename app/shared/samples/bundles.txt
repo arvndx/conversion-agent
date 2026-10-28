@@ -1,0 +1,151 @@
+CONVERSION AGENT: BUNDLES (sample, for development)
+Stored as text for now. Not real business data. Wording is not approved.
+Source: plan1.txt, A22, A23, A24, A25, A27, A32, A39, A46, A47, A57, A58, A59.
+
+======================================================================
+1. CATEGORY BUNDLE: restaurant
+   Shared by every business in this category.
+======================================================================
+
+category_id: restaurant
+
+default_questions (five per chat, from this list):
+  - Book a table
+  - View the menu
+  - Opening hours
+  - Directions
+  - Online ordering
+
+topics (what the agent answers; anything else is off-topic):
+  - menu
+  - opening hours
+  - booking
+  - ordering
+  - location and directions
+  - parking
+  - dietary information
+  general_knowledge_allowed: false
+
+tools (the tools this category allows; the agent may only call these):
+  - get_menu(): the full menu, grouped by section
+  - search_menu(query): matching dishes (fuzzy match within the menu); the full menu if no match
+  - get_business_info(field): one allowed field: display name, phone, email, address, service area, opening hours, timezone or website
+  - get_booking_options(): calendar slots if connected, otherwise the booking link
+  - request_handoff(name, email, phone, conversation, question): validated handover details; conversation is filled by the code from the session, not typed by the visitor
+
+handover_triggers (each one offers a handover to the business):
+  - confused: the agent cannot understand or answer after one retry
+  - chat_time_over: chat time over 300 seconds
+  - data_missing: business data is missing for the question
+  - no_booking_route: the visitor wants to book or order, and there is no calendar and no booking link
+  note: all "time" is chat time since the chat opened (A48 c)
+
+handover_extra_fields: empty for now (A24)
+
+never_ask:
+  - payment card numbers
+  - passwords
+
+guardrails_text:
+  ai_notice: You are chatting with an AI assistant.
+  recording_notice: This chat is recorded, and the business receives the details you share.
+  approved_by: (empty until approved)
+  approved_on: (empty until approved)
+  version: draft-1
+
+teaser_text: Hi, I'm an AI assistant for {customer_name}. I'm here to help you.
+
+message_texts:
+  ai_busy: Our chatbot is busy with multiple sessions. So I'm capturing your query and conveying it with {customer_name} directly. {customer_name} will ping you shortly.
+  handover_offer: For better clarification, would you like to convey your query directly with {customer_name}? They will connect with you soon.
+
+  handover_sent: Conveyed your query to {customer_name}. {customer_name} will contact you soon.
+  abuse_warning: Please keep the chat respectful. I can help with questions about {customer_name}. (draft, A73)
+
+abuse_check:
+  method: profanity library (better-profanity), not an LLM, for now (A58)
+  blocklist: (to fill: mandatory words that always count as abuse)
+  allowlist: (to fill: industry words that look rude but are normal)
+
+abuse_rules:
+  warning_on_strikes: 1 and 2
+  block_on_strike: 3
+  block_minutes_production: 60
+  block_minutes_test: 3
+  block_scope: browser flag and session (A46)
+
+scoring_rules (points, with limits per session, A18):
+  - active over 4 minutes: 15 points, once per session
+  - booking link click: 10 points, up to 3 times
+  - other clickable: 5 points, up to 2 times each and 30 points in total
+  - asked for a person: 15 points, once per session
+
+idle_close_minutes: 30
+
+======================================================================
+2. CUSTOMER BUNDLE: Spice Garden (one location)
+======================================================================
+
+resource_type: tier_location
+resource_id: loc_spice_garden_01
+category_id: restaurant
+
+display_name:
+  first_name: Spice
+  last_name: Garden
+
+public_contact:
+  phone: +1 555 0123
+  email: hello@spicegarden.example
+
+primary_location: 12 Market Street, Austin, TX
+
+service_area: Austin (city; mandatory, A59)
+
+timezone: America/Chicago
+
+business_hours:
+  mon_fri: 11:00-22:00
+  sat_sun: 12:00-23:00
+
+weblink: https://spicegarden.example
+
+links (placeholder links for now):
+  table_booking: https://www.google.com
+  online_order: https://www.google.com
+
+menu (grouped by section):
+  starter:
+    - Paneer Tikka (vegetarian), 12.50
+    - Vegetable Samosa (vegetarian), 6.00
+  soups:
+    - Tomato Shorba (vegetarian), 7.00
+    - Chicken Soup, 8.00
+  main course:
+    - Chicken Biryani, 15.00
+    - Vegetable Korma (vegetarian), 11.00
+
+services: dine-in, takeaway
+
+licences: (not used for restaurant)
+
+current_offers:
+  - text: Weekday lunch set menu
+    starts: 2026-10-01
+    ends: 2026-12-31
+
+scoring_threshold: 60 (the only scoring setting the business can change, A25 b)
+
+slot_minutes: (blank: category default 15)
+bookings_per_slot: (blank: category default 4)
+
+google_calendar_connected: no
+
+enabled: yes (set by the subscription; A67)
+kill_switch: none (set by the operator API; A67)
+allowed_domains: localhost:8001, localhost:8002 (customer-wise; A69)
+
+NOT IN THIS BUNDLE (read separately, A57):
+  - enabled flag and kill switch (conversion_subscription)
+  - allowed domains and site key (conversion_subscription)
+  - secrets, tokens, visitors, chats, subscription history

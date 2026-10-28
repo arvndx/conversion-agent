@@ -1,0 +1,87 @@
+{
+  "bundle_type": "customer",
+  "resource_type": "tier_location",
+  "resource_id": "loc_spice_garden_01",
+  "category_id": "restaurant",
+  "note": "Sample customer bundle for development. Same structure as the Redis bundle in production. Not real business data. Source: plan1.txt A22, A23, A32, A39, A57, A59.",
+  "display_name": {
+    "first_name": "Spice",
+    "last_name": "Garden"
+  },
+  "public_contact": {
+    "phone": "+1 555 0123",
+    "email": "hello@spicegarden.example"
+  },
+  "primary_location": "12 Market Street, Austin, TX",
+  "service_area": "Austin",
+  "timezone": "America/Chicago",
+  "business_hours": {
+    "mon_fri": "11:00-22:00",
+    "sat_sun": "12:00-23:00"
+  },
+  "weblink": "https://spicegarden.example",
+  "links": {
+    "table_booking": "https://www.google.com",
+    "online_order": "https://www.google.com"
+  },
+  "menu": {
+    "starter": [
+      {
+        "name": "Paneer Tikka",
+        "price": 12.5,
+        "vegetarian": true
+      },
+      {
+        "name": "Vegetable Samosa",
+        "price": 6.0,
+        "vegetarian": true
+      }
+    ],
+    "soups": [
+      {
+        "name": "Tomato Shorba",
+        "price": 7.0,
+        "vegetarian": true
+      },
+      {
+        "name": "Chicken Soup",
+        "price": 8.0,
+        "vegetarian": false
+      }
+    ],
+    "main course": [
+      {
+        "name": "Chicken Biryani",
+        "price": 15.0,
+        "vegetarian": false
+      },
+      {
+        "name": "Vegetable Korma",
+        "price": 11.0,
+        "vegetarian": true
+      }
+    ]
+  },
+  "services": [
+    "dine-in",
+    "takeaway"
+  ],
+  "licences": null,
+  "current_offers": [
+    {
+      "text": "Weekday lunch set menu",
+      "starts": "2026-10-01",
+      "ends": "2026-12-31"
+    }
+  ],
+  "scoring_threshold": 60,
+  "slot_minutes": null,
+  "bookings_per_slot": null,
+  "google_calendar_connected": false,
+  "enabled": true,
+  "kill_switch": "none",
+  "allowed_domains": [
+    "localhost:8001",
+    "localhost:8002"
+  ]
+}

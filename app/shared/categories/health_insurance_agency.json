@@ -1,0 +1,259 @@
+{
+  "id": "d2350d5f-b0f9-4836-a9a2-d5ac48790da5",
+  "gcid": "gcid:health_insurance_agency",
+  "entity_type": "location",
+  "pricing_tier": "location",
+  "status": "pending",
+  "exclusion_reason": null,
+  "terminology": null,
+  "services": [
+    "individual and family health insurance plan comparison and enrollment",
+    "employer group health benefits consulting and administration",
+    "ACA marketplace and Medicaid eligibility assessment",
+    "Medicare supplement and Advantage plan enrollment",
+    "COBRA administration and transition coverage",
+    "dental and vision insurance bundling",
+    "Health Savings Account (HSA) setup and education",
+    "annual benefits renewal and plan optimization review",
+    "claims support and insurance dispute advocacy",
+    "short-term health insurance placement"
+  ],
+  "compliance_rules": [
+    "State insurance producer license requirement for selling health insurance",
+    "CMS certification requirement for selling ACA marketplace and Medicare plans",
+    "Gramm-Leach-Bliley Act (GLBA) data privacy requirements for client financial information",
+    "HIPAA compliance when handling client health information during enrollment",
+    "Anti-discrimination provisions under the ACA Section 1557",
+    "State-specific continuing education requirements for license renewal"
+  ],
+  "customer_journey": [
+    "awareness: prospect experiences life event such as job change or coverage loss and searches for health insurance options",
+    "needs assessment: agent gathers information on health history, budget, and preferred providers",
+    "plan comparison and recommendation: agent presents and explains suitable plan options",
+    "enrollment and onboarding: client completes enrollment paperwork and receives coverage confirmation",
+    "ongoing service: annual reviews, claims support, and open enrollment updates"
+  ],
+  "ranking_factors": [
+    "Google Business Profile completeness with insurance categories and service areas",
+    "Volume of reviews mentioning specific plan types and responsive agent service",
+    "Citations on insurance-specific directories such as AgentReview and Trusted Choice",
+    "FinancialService and InsuranceAgency schema markup on website",
+    "Educational content targeting open enrollment and plan comparison search queries",
+    "Local backlinks from chambers of commerce and employer associations"
+  ],
+  "review_vocabulary": null,
+  "content_topics": null,
+  "expertise_signals": [
+    "State-licensed Health Insurance Producer with active license in good standing",
+    "CMS Marketplace training and certification for ACA plan sales",
+    "AHIP Medicare certification for Medicare plan enrollment",
+    "Registered Health Underwriter (RHU) designation",
+    "Certified Employee Benefit Specialist (CEBS) credential",
+    "Member of the National Association of Health Underwriters (NAHU)"
+  ],
+  "scoring_weights": null,
+  "ai_agents": {
+    "sdr_tone": "professional",
+    "key_directories": [
+      "Google Business Profile",
+      "Trusted Choice agent directory",
+      "AgentReview.com",
+      "HealthMarkets agent locator",
+      "eHealth insurance directory",
+      "Better Business Bureau",
+      "LinkedIn Business Page"
+    ],
+    "top_content_topics": [
+      "how to compare health insurance plans during open enrollment",
+      "understanding deductibles, copays, and out-of-pocket maximums",
+      "ACA marketplace subsidies: who qualifies and how to apply"
+    ],
+    "review_response_style": "Thank the client for their trust and reinforce the commitment to providing clear and personalized coverage guidance.",
+    "compliance_restrictions": "Do not reference specific client plan details or health information in public review responses; comply with HIPAA and state insurance privacy laws"
+  },
+  "knowledge_pct": 0,
+  "is_launched": false,
+  "created_at": "2026-07-03T16:53:01.755450+00:00",
+  "updated_at": "2026-07-05T19:17:10.283670+00:00",
+  "value_props": [
+    {
+      "lane": "location",
+      "text": "Compare individual, family, and employer group health plans side-by-side with licensed agents who explain premiums, deductibles, and in-network coverage in plain language."
+    },
+    {
+      "lane": "location",
+      "text": "ACA marketplace, Medicaid, and Medicare supplement enrollment under one roof — get expert eligibility assessment and enroll in the right plan during any qualifying life event."
+    },
+    {
+      "lane": "location",
+      "text": "Employer group benefits consulting and full administration, from plan design and underwriting to annual renewal optimization and employee onboarding."
+    },
+    {
+      "lane": "location",
+      "text": "Never navigate a claim alone — our agency provides ongoing claims support and insurance dispute advocacy to ensure your coverage works when you need it most."
+    },
+    {
+      "lane": "location",
+      "text": "Bundle dental, vision, and HSA-eligible health plans in a single consultation and leave with a complete, cost-effective benefits package."
+    },
+    {
+      "lane": "location",
+      "text": "Experienced in COBRA administration and short-term health insurance placement, keeping you covered seamlessly during job transitions or coverage gaps."
+    }
+  ],
+  "search_intents": [
+    {
+      "lane": "location",
+      "query": "health insurance agency near {neighborhood} for individual and family plans"
+    },
+    {
+      "lane": "location",
+      "query": "ACA marketplace enrollment help in {city}"
+    },
+    {
+      "lane": "location",
+      "query": "Medicare supplement and Advantage plan enrollment office {city}"
+    },
+    {
+      "lane": "location",
+      "query": "employer group health benefits consulting {city}"
+    },
+    {
+      "lane": "location",
+      "query": "COBRA continuation coverage assistance near {neighborhood}"
+    },
+    {
+      "lane": "location",
+      "query": "open enrollment health insurance agent {city}"
+    },
+    {
+      "lane": "location",
+      "query": "lost job need health insurance options {city}"
+    },
+    {
+      "lane": "location",
+      "query": "HSA eligible health plan setup and advice {neighborhood}"
+    }
+  ],
+  "conversion_actions": [
+    {
+      "key": "schedule_coverage_consultation",
+      "lane": "location",
+      "label": "Schedule a Free Coverage Consultation",
+      "agent_goal": "Capture prospect's life event trigger, household size, budget, and preferred providers to match them with suitable plan options and begin enrollment.",
+      "schema_action": "ScheduleAction",
+      "profile_button": "Book Free Consultation"
+    },
+    {
+      "key": "request_plan_comparison",
+      "lane": "location",
+      "label": "Request a Side-by-Side Plan Comparison",
+      "agent_goal": "Collect health history, prescription needs, and in-network provider preferences to generate a personalized plan comparison covering premiums, deductibles, and formulary details.",
+      "schema_action": "ViewAction",
+      "profile_button": "Compare My Plans"
+    },
+    {
+      "key": "enroll_in_health_plan",
+      "lane": "location",
+      "label": "Start Your Health Plan Enrollment",
+      "agent_goal": "Guide the client through enrollment paperwork for their selected ACA, Medicare, employer group, or short-term plan and confirm coverage effective date.",
+      "schema_action": "ReserveAction",
+      "profile_button": "Start Enrollment Now"
+    },
+    {
+      "key": "get_cobra_transition_help",
+      "lane": "location",
+      "label": "Get COBRA or Transition Coverage Assistance",
+      "agent_goal": "Identify the client's coverage gap timeline following a job loss or life event and present COBRA administration options or short-term health insurance alternatives to bridge the gap.",
+      "schema_action": "CommunicateAction",
+      "profile_button": "Get Coverage Help"
+    },
+    {
+      "key": "request_benefits_renewal_review",
+      "lane": "location",
+      "label": "Request Annual Benefits Renewal Review",
+      "agent_goal": "Schedule an open enrollment review session to reassess the client's or employer group's current plan performance, premium changes, and opportunities for cost or coverage optimization.",
+      "schema_action": "ScheduleAction",
+      "profile_button": "Review My Benefits"
+    },
+    {
+      "key": "subscribe_enrollment_alerts",
+      "lane": "location",
+      "label": "Subscribe to Open Enrollment Reminders",
+      "agent_goal": "Capture contact details and preferred communication channel to send timely open enrollment period reminders, ACA deadline alerts, and plan change notifications.",
+      "schema_action": "SubscribeAction",
+      "profile_button": "Get Enrollment Alerts"
+    }
+  ],
+  "_compliance": {
+    "gcid": "gcid:health_insurance_agency",
+    "display_license_on_profile": true,
+    "display_license_on_content": false,
+    "display_license_on_ads": false,
+    "display_license_on_email": false,
+    "license_display_format": "State Insurance Producer License #",
+    "license_label": null,
+    "required_disclaimers": [
+      "We are independent licensed insurance producers, not employees of any insurance carrier.",
+      "Plan availability and pricing vary by state, county, and individual circumstances.",
+      "This website is not affiliated with the federal government or HealthCare.gov.",
+      "Medicare Advantage and Medicare Supplement plans are offered by private insurance companies approved by Medicare.",
+      "Submitting a quote request does not constitute enrollment in a health plan.",
+      "HIPAA Notice of Privacy Practices available upon request.",
+      "We are licensed in the following states: [list active states].",
+      "Premium tax credit eligibility is determined by the federal marketplace based on household income and size."
+    ],
+    "disclaimer_placement": null,
+    "content_restrictions": [
+      "CMS marketing guidelines prohibit unsolicited door-to-door sales of Medicare Advantage or Part D plans",
+      "AHIP-certified agents may not market Medicare plans using materials not approved by the carrier and CMS",
+      "ACA Section 1557 prohibits discrimination in marketing based on race, sex, age, disability, or national origin",
+      "GLBA requires a privacy notice to be delivered to clients at the point of enrollment",
+      "State DOI advertising rules may require license number disclosure in all consumer-facing advertisements",
+      "Agents may not guarantee subsidy amounts before official marketplace eligibility determination",
+      "Short-term health plan ads must disclose that the plan is not ACA-compliant and does not cover essential health benefits"
+    ],
+    "prohibited_phrases": [
+      "avoid ACA penalties with our exclusive plan",
+      "covers everything",
+      "free government health insurance sign-up",
+      "guaranteed acceptance no medical questions",
+      "guaranteed approval for any health plan",
+      "guaranteed approval regardless of health condition",
+      "guaranteed claim approval",
+      "guaranteed lowest premium",
+      "insurance without agent license required",
+      "lowest price guaranteed",
+      "Medicare-approved (unless CMS-designated)",
+      "no referrals ever needed",
+      "this plan has no exclusions or limitations",
+      "unlimited coverage",
+      "we are not affiliated with the government (must display — absence is prohibited in some states)",
+      "we can waive your medical underwriting",
+      "we guarantee you will qualify for subsidies",
+      "zero cost to you no fees ever charged"
+    ],
+    "required_disclosures": null,
+    "age_gate_required": false,
+    "age_gate_minimum": 18,
+    "age_gate_type": null,
+    "hipaa_applies": true,
+    "coppa_applies": false,
+    "glba_applies": true,
+    "ferpa_applies": false,
+    "regulated_by": [
+      "State Department of Insurance (DOI) — varies by state",
+      "Centers for Medicare and Medicaid Services (CMS)",
+      "National Insurance Producer Registry (NIPR)",
+      "America's Health Insurance Plans (AHIP) — Medicare certification",
+      "Federal Trade Commission (FTC) — GLBA data privacy enforcement",
+      "U.S. Department of Health and Human Services (HHS) — HIPAA and ACA Section 1557 enforcement"
+    ],
+    "advertising_rules_url": null,
+    "compliance_notes": null,
+    "review_verification_required": false,
+    "review_transaction_required": false,
+    "created_at": "2026-07-07T02:15:47.215375+00:00",
+    "updated_at": "2026-07-07T02:15:47.215375+00:00"
+  }
+}

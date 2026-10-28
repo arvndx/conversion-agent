@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reply quality · Conversion Agent (demo)</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/static/dash.css">
+</head>
+<body>
+<header class="hero" id="hero"></header>
+
+<main class="wrap page">
+  <p class="demo-note">Demo page. The replies and ratings are made up. The chat history here is kept for 20 days, as in the plan.</p>
+
+  <section id="top"></section>
+
+  <section class="card mt">
+    <div class="toolbar">
+      <div class="seg" id="tabs" role="tablist">
+        <button data-t="up" class="on" role="tab">Helpful <span class="count" id="cUp">0</span></button>
+        <button data-t="down" role="tab">Need improvement <span class="count" id="cDown">0</span></button>
+      </div>
+      <input class="search" id="search" type="search" placeholder="Search the question or the reply" aria-label="Search">
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>When</th><th>Domain</th><th>Question</th><th class="hide-sm">Reply</th><th class="hide-sm">Topic</th><th id="reasonHead">Reason</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+    <div class="foot">
+      <span class="sub" id="count"></span>
+      <button class="btn ghost" id="more">Show 20 more</button>
+    </div>
+  </section>
+</main>
+
+<script src="/static/dash.js"></script>
+<script>
+(function () {
+  "use strict";
+  var D = Dash;
+  var PAGE = 20, shown = PAGE;
+  var replies = [];
+  var q = { tab: "up", domain: "all", days: 20, query: "" };
+  var UP = "#1f9d6b", DOWN = "#d08a1e";
+
+  D.hero({
+    page: "replies", title: "Reply quality", domain: true, period: 20,
+    periods: [[7, "7 days"], [20, "20 days"]],
+    onChange: function (s) { q.domain = s.domain; q.days = s.period; shown = PAGE; if (replies.length) render(); }
+  });
+
+  function inScope(r) {
+    return (q.domain === "all" || r.domain === q.domain) && Date.now() - new Date(r.when).getTime() <= q.days * D.DAY;
+  }
+
+  function render() {
+    var scoped = replies.filter(inScope);
+    var up = scoped.filter(function (r) { return r.feedback === "up"; }).length;
+    var down = scoped.length - up;
+    var rate = scoped.length ? Math.round((up / scoped.length) * 100) : 0;
+    var downRate = scoped.length ? 100 - rate : 0;
+    document.getElementById("top").innerHTML =
+      '<div class="card"><div class="card-head"><div><h2>Helpful rate</h2>' +
+      '<p class="hint">Share of the replies visitors rated in the selected period</p></div></div>' +
+      '<div class="helpful">' +
+      D.donut([{ value: up, color: UP, label: "Helpful" }, { value: down, color: DOWN, label: "Need improvement" }], {
+        size: 190, stroke: 18, label: "Helpful rate " + rate + " percent",
+        center: '<div><div style="font-size:36px;font-weight:760;letter-spacing:-.02em;color:var(--navy)">' + rate + '%</div>' +
+          '<div class="sub">helpful</div></div>'
+      }) +
+      '<div class="stat-list">' +
+      '<div class="stat"><span class="ico c-ok">' + D.icon("check") + '</span><div><div class="label">Helpful</div>' +
+      '<div class="stat-num">' + D.fmt(up) + ' <span class="sub">' + rate + '%</span></div></div></div>' +
+      '<div class="stat"><span class="ico c-hot">' + D.icon("edit") + '</span><div><div class="label">Need improvement</div>' +
+      '<div class="stat-num">' + D.fmt(down) + ' <span class="sub">' + downRate + '%</span></div></div></div>' +
+      '</div></div></div>';
+    document.getElementById("cUp").textContent = D.fmt(up);
+    document.getElementById("cDown").textContent = D.fmt(down);
+
+    var query = q.query.trim().toLowerCase();
+    var list = scoped.filter(function (r) {
+      return r.feedback === q.tab && (!query || (r.question + " " + r.reply).toLowerCase().indexOf(query) >= 0);
+    });
+    var visible = list.slice(0, shown);
+    document.getElementById("reasonHead").classList.toggle("hidden", q.tab !== "down");
+    document.getElementById("rows").innerHTML = visible.map(function (r) {
+      var reason = q.tab === "down" ? '<td><span class="reason r-unsure">' + D.esc(r.reason) + "</span></td>" : "";
+      return '<tr class="click" data-id="' + r.id + '"><td class="meta">' + D.when(r.when) + '</td><td><span class="tag">' + D.esc(r.domain) + '</span></td>' +
+        '<td class="clip" style="max-width:260px">' + D.esc(r.question) + '</td><td class="hide-sm clip" style="max-width:300px">' + D.esc(r.reply) + "</td>" +
+        '<td class="hide-sm">' + D.esc(r.topic) + "</td>" + reason + "</tr>";
+    }).join("") || '<tr><td colspan="6" class="empty">Nothing here for this period.</td></tr>';
+    document.getElementById("count").textContent = "Showing " + visible.length + " of " + list.length;
+    document.getElementById("more").disabled = visible.length >= list.length;
+  }
+
+  function openReply(id) {
+    var r = replies.find(function (x) { return x.id === id; });
+    if (!r) return;
+    var helpful = r.feedback === "up";
+    var html = D.facts([
+      { k: "Question", v: D.esc(r.question), wide: true },
+      { k: "Topic", v: D.esc(r.topic) },
+      { k: "Domain", v: D.esc(r.domain) },
+      { k: "Rated", v: helpful ? '<span class="pill p-on">Helpful</span>' : '<span class="pill p-warn">Need improvement</span>' }
+    ].concat(helpful ? [] : [{ k: "Reason given", v: D.esc(r.reason), wide: true }])) +
+      '<div class="sec"><h3>Whole conversation</h3>' +
+      D.thread(r.conversation, { text: r.reply, note: "This reply: " + (helpful ? "helpful" : "need improvement") }) + "</div>";
+    D.openDrawer(r.domain + " · " + D.when(r.when), helpful ? "Helpful reply" : "Reply that needs improvement", html);
+  }
+
+  document.getElementById("tabs").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    q.tab = b.dataset.t; shown = PAGE;
+    document.querySelectorAll("#tabs button").forEach(function (x) { x.classList.toggle("on", x === b); });
+    render();
+  });
+  document.getElementById("search").addEventListener("input", function (e) { q.query = e.target.value; shown = PAGE; render(); });
+  document.getElementById("more").addEventListener("click", function () { shown += PAGE; render(); });
+  document.getElementById("rows").addEventListener("click", function (e) { var tr = e.target.closest("tr[data-id]"); if (tr) openReply(tr.dataset.id); });
+
+  D.get("/replies").then(function (d) {
+    replies = d.replies;
+    return D.get("/dashboard");
+  }).then(function (dash) {
+    D.setName(dash.customer.name, "Reply quality");
+    D.setDomains(dash.customer.domains);
+    render();
+  }).catch(function () {
+    D.setName("No page for this address", "Reply quality");
+    document.querySelector("main").innerHTML = '<div class="card empty">Check the address, for example /c/loc_spice_garden_01/replies.</div>';
+  });
+})();
+</script>
+</body>
+</html>

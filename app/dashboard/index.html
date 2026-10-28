@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Overview · Conversion Agent (demo)</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/static/dash.css">
+  <style>
+    .dtable { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .dtable th { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); text-align: left; padding: 11px 14px;
+      background: var(--soft); border-bottom: 1px solid var(--line); white-space: nowrap; }
+    .dtable td { padding: 14px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: middle; }
+    .dtable tbody tr:hover td { background: #f8fbff; }
+    .dtable .num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+    .dtable tr.total td { background: var(--blue-soft); color: var(--navy); font-weight: 750; border-bottom: 0; }
+    .dname { display: flex; gap: 10px; align-items: flex-start; min-width: 200px; }
+    .dname i { width: 10px; height: 10px; border-radius: 50%; margin-top: 6px; flex: none; }
+    .dname b { font-size: 14.5px; color: var(--navy); }
+    .dbar { height: 6px; background: var(--track); border-radius: 999px; margin-top: 8px; width: min(240px, 100%); overflow: hidden; }
+    .dbar div { height: 100%; border-radius: 999px; }
+    .vpill { display: inline-block; padding: 3px 11px; border-radius: 999px; background: var(--blue-soft); color: var(--blue); font-weight: 700; font-size: 12.5px; }
+    .ap-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, .45); display: flex; align-items: center;
+      justify-content: center; padding: 16px; z-index: 50; }
+    .ap-overlay[hidden] { display: none; }
+    .ap-box { background: var(--card, #fff); color: inherit; border-radius: 14px; padding: 22px; width: min(520px, 100%);
+      max-height: 90vh; overflow: auto; display: grid; gap: 8px; box-shadow: 0 20px 50px rgba(0, 0, 0, .25); }
+    .ap-head { display: flex; justify-content: space-between; align-items: center; }
+    .ap-head h3 { margin: 0; }
+    .ap-close { background: none; border: 0; font-size: 22px; cursor: pointer; color: inherit; }
+    .ap-question { font-weight: 650; margin: 4px 0; }
+    .ap-box textarea, .ap-box input { width: 100%; box-sizing: border-box; font: inherit; padding: 8px; border-radius: 8px;
+      border: 1px solid var(--line, #d7dde8); }
+    .ap-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+  </style>
+</head>
+<body>
+<header class="hero" id="hero"></header>
+
+<main class="wrap page">
+  <p class="demo-note">Demo page. The numbers are made up. The business name and domains are real.</p>
+
+  <section class="grid g4" id="kpis"></section>
+
+  <div class="row" style="justify-content:flex-end">
+    <button class="btn ghost" id="byDomainBtn" type="button" aria-expanded="false" aria-controls="byDomain">Show numbers by domain</button>
+  </div>
+  <section class="card mt hidden" id="byDomain">
+    <div class="card-head"><div><h2>Numbers by domain</h2><p class="hint" id="byDomainHint"></p></div></div>
+    <div class="table-wrap"><table class="dtable">
+      <thead><tr><th>Domain</th><th class="num">Visitors</th><th class="num">Chats</th><th class="num">Leads</th><th class="num">Hot visitors</th><th class="num">Visit to lead</th></tr></thead>
+      <tbody id="byDomainRows"></tbody>
+    </table></div>
+  </section>
+
+  <section class="card mt">
+    <div class="card-head">
+      <div><h2>Chats and leads</h2><p class="hint" id="trendHint">Daily, for the selected period. Hover to see a day.</p></div>
+      <div class="legend">
+        <span><i style="background:var(--chat)"></i>Chats</span>
+        <span><i style="background:var(--lead)"></i>Leads</span>
+      </div>
+    </div>
+    <div class="chart" id="trend"></div>
+  </section>
+
+
+  <section class="grid g2 mt">
+    <div class="card">
+      <div class="card-head"><div><h2>Topics visitors ask about</h2>
+        <p class="hint">Each chat gets one topic when its summary is written.</p></div></div>
+      <div id="topics"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h2>What visitors asked for</h2>
+        <p class="hint">Questions the business could not answer from its data. Add the answer in Admin.</p></div></div>
+      <div id="asked"></div>
+      <div id="answer-panel" hidden class="ap-overlay"></div>
+    </div>
+  </section>
+</main>
+
+<script src="/static/dash.js"></script>
+<script>
+(function () {
+  "use strict";
+  var D = Dash;
+  var data = null, ins = null, fb = null;
+  var st = D.hero({
+    page: "overview", title: "Loading…", domain: true, period: 30,
+    periods: [[7, "7 days"], [30, "30 days"], [90, "90 days"]],
+    onChange: function () { if (data) render(); }
+  });
+
+  function domainsInScope() { return st.domain === "all" ? data.customer.domains : [st.domain]; }
+  function days() { return st.period; }
+
+  // Totals for the last n days (offset moves the window back, for "compared with the period before").
+  function totalsFor(list, n, offset) {
+    var out = { visitors: 0, chats: 0, leads: 0, hot: 0 };
+    var end = data.daily.length - offset;
+    for (var i = Math.max(0, end - n); i < end; i++) {
+      list.forEach(function (dom) {
+        var v = data.daily[i].domains[dom];
+        out.visitors += v.visitors; out.chats += v.chats; out.leads += v.leads; out.hot += v.hot;
+      });
+    }
+    return out;
+  }
+  // One row per day, for the chosen domains.
+  function rowsFor(list) {
+    return data.daily.map(function (row) {
+      var o = { date: row.date, visitors: 0, chats: 0, leads: 0, hot: 0 };
+      list.forEach(function (dom) { var v = row.domains[dom]; o.visitors += v.visitors; o.chats += v.chats; o.leads += v.leads; o.hot += v.hot; });
+      return o;
+    });
+  }
+
+  function renderKpis() {
+    var list = domainsInScope(), n = days();
+    var now = totalsFor(list, n, 0), before = totalsFor(list, n, n);
+    var rows = rowsFor(list).slice(-n);
+    var cells = [
+      ["Visitors", "visitors", "visit", "#5b8ee6", "visitors"],
+      ["Chats", "chats", "chat", "#2f6fd6", "chat"],
+      ["Leads", "leads", "lead", "#1c2f57", "lead"],
+      ["Hot visitors", "hot", "hot", "#d08a1e", "hot"]
+    ];
+    document.getElementById("kpis").innerHTML = cells.map(function (c) {
+      var value = now[c[1]], prev = before[c[1]];
+      var change = prev ? Math.round(((value - prev) / prev) * 100) : 0;
+      return '<div class="card kpi"><div class="ico c-' + c[2] + '">' + D.icon(c[4]) + "</div>" +
+        '<div class="label">' + c[0] + '</div><div class="big">' + D.fmt(value) + "</div>" +
+        '<div class="foot"><span class="delta ' + (change >= 0 ? "up" : "down") + '">' + (change >= 0 ? "▲ " : "▼ ") +
+        Math.abs(change) + "%</span> vs previous " + n + " days</div>" +
+        D.spark(rows.map(function (r) { return r[c[1]]; }), c[3]) + "</div>";
+    }).join("");
+  }
+
+  // One row per domain, for any number of domains (one to four), and a total row. Shown when the button is pressed.
+  var DOMAIN_COLORS = ["#2f6fd6", "#1c2f57", "#5b8ee6", "#d08a1e"];
+  function renderByDomain() {
+    var list = data.customer.domains;
+    var rows = list.map(function (dom, i) { return { dom: dom, color: DOMAIN_COLORS[i % DOMAIN_COLORS.length], t: totalsFor([dom], days(), 0) }; })
+      .sort(function (a, b) { return b.t.visitors - a.t.visitors; });
+    var all = totalsFor(list, days(), 0);
+    var top = Math.max(1, rows.length ? rows[0].t.visitors : 1);
+    document.getElementById("byDomainHint").textContent = list.length + (list.length === 1 ? " domain" : " domains") +
+      ", last " + days() + " days. Sorted by visitors.";
+    document.getElementById("byDomainRows").innerHTML = rows.map(function (r) {
+      return '<tr><td><div class="dname"><i style="background:' + r.color + '"></i><div><b>' + D.esc(r.dom) + '</b>' +
+        '<div class="dbar"><div style="width:' + Math.round((r.t.visitors / top) * 100) + "%;background:" + r.color + '"></div></div></div></div></td>' +
+        '<td class="num">' + D.fmt(r.t.visitors) + '</td><td class="num">' + D.fmt(r.t.chats) + '</td><td class="num">' + D.fmt(r.t.leads) +
+        '</td><td class="num">' + D.fmt(r.t.hot) + '</td><td class="num"><span class="vpill">' + D.pct(r.t.leads, r.t.visitors) + "%</span></td></tr>";
+    }).join("") + (rows.length > 1 ? '<tr class="total"><td>All domains</td><td class="num">' + D.fmt(all.visitors) + '</td><td class="num">' +
+      D.fmt(all.chats) + '</td><td class="num">' + D.fmt(all.leads) + '</td><td class="num">' + D.fmt(all.hot) +
+      '</td><td class="num"><span class="vpill">' + D.pct(all.leads, all.visitors) + "%</span></td></tr>" : "") ||
+      '<tr><td colspan="6" class="empty">No domains yet.</td></tr>';
+  }
+  document.getElementById("byDomainBtn").addEventListener("click", function () {
+    var card = document.getElementById("byDomain"), open = card.classList.contains("hidden");
+    card.classList.toggle("hidden", !open);
+    this.setAttribute("aria-expanded", String(open));
+    this.textContent = open ? "Hide numbers by domain" : "Show numbers by domain";
+    if (open) renderByDomain();
+  });
+
+  function renderTrend() {
+    var rows = rowsFor(domainsInScope()).slice(-days());
+    D.areaChart(document.getElementById("trend"), rows, {
+      label: "Chats and leads per day", height: 300,
+      series: [{ key: "chats", label: "Chats", color: "#2f6fd6" }, { key: "leads", label: "Leads", color: "#1c2f57" }]
+    });
+  }
+
+  function renderTopics() {
+    if (!fb) return;
+    var counts = {};
+    fb.topics.forEach(function (t) { counts[t] = 0; });
+    fb.daily.slice(-days()).forEach(function (row) {
+      domainsInScope().forEach(function (dom) {
+        Object.keys(row.domains[dom].topics).forEach(function (t) { counts[t] += row.domains[dom].topics[t]; });
+      });
+    });
+    var rows = Object.keys(counts).map(function (t) { return [t, counts[t]]; }).sort(function (a, b) { return b[1] - a[1]; });
+    var max = Math.max(1, rows[0] ? rows[0][1] : 1);
+    document.getElementById("topics").innerHTML = rows.map(function (r, i) {
+      return '<div class="bar-row"><div class="rank">' + (i + 1) + '</div><div><div class="bar-label"><span>' + D.esc(r[0]) +
+        '</span></div><div class="track"><div style="width:' + Math.round((r[1] / max) * 100) + '%"></div></div></div>' +
+        '<div class="bar-count">' + D.fmt(r[1]) + "</div></div>";
+    }).join("");
+  }
+
+  // Each card opens a panel with the AI's suggested answer and the field it would be saved to. Save stores the answer
+  // in the backend (the field, or a custom field) and the chat uses it from then on.
+  function renderAsked() {
+    if (!ins) return;
+    var top = ins.cards.slice(0, 5);
+    document.getElementById("asked").innerHTML = top.map(function (c, i) {
+      return '<button type="button" class="ask ask-open" data-open="' + i + '" style="width:100%;text-align:left;background:none;' +
+        'border:0;border-bottom:1px solid var(--line);cursor:pointer;display:flex;gap:12px;align-items:center;padding:12px 0">' +
+        '<div class="n">' + D.fmt(c.count) + '</div><div class="t">visitors ' + D.esc(c.text) + "</div>" +
+        '<span class="hint">Open</span></button>';
+    }).join("") || '<p class="empty">Nothing yet.</p>';
+  }
+
+  function closePanel() {
+    var panel = document.getElementById("answer-panel");
+    if (panel) panel.hidden = true;
+  }
+
+  function openPanel(index) {
+    var card = ins.cards[index];
+    var panel = document.getElementById("answer-panel");
+    var datalist = (ins.fields || []).map(function (f) {
+      return '<option value="' + D.esc(f.key) + '">' + D.esc(f.label) + "</option>";
+    }).join("");
+    panel.innerHTML = '<div class="ap-box" role="dialog" aria-modal="true" aria-labelledby="ap-title">' +
+      '<div class="ap-head"><h3 id="ap-title">Visitors asked</h3><button type="button" class="ap-close" aria-label="Close">&times;</button></div>' +
+      '<p class="ap-question">' + D.esc(card.text) + '</p>' +
+      '<p class="hint">Asked ' + D.fmt(card.count) + ' times in the last 30 days.</p>' +
+      '<label class="hint" for="ap-answer">Suggested answer, from the business\'s own details. Check it before you save.</label>' +
+      '<textarea id="ap-answer" rows="4" maxlength="1000" placeholder="Write the answer the chat should give">' +
+      D.esc(card.suggested_answer || "") + '</textarea>' +
+      '<label class="hint" for="ap-key">Save it as (a field name, or a new one)</label>' +
+      '<input id="ap-key" maxlength="40" list="ap-fields" value="' + D.esc(card.suggested_key || "") + '">' +
+      '<datalist id="ap-fields">' + datalist + '</datalist>' +
+      '<div class="ap-actions"><button type="button" class="btn small ap-cancel">Cancel</button>' +
+      '<button type="button" class="btn small ap-save" data-index="' + index + '">Save answer</button></div></div>';
+    panel.hidden = false;
+    document.getElementById("ap-answer").focus();
+  }
+
+  document.getElementById("asked").addEventListener("click", function (e) {
+    var open = e.target.closest("[data-open]");
+    if (open) { openPanel(Number(open.dataset.open)); }
+  });
+
+  document.getElementById("answer-panel").addEventListener("click", function (e) {
+    if (e.target === this || e.target.closest(".ap-close") || e.target.closest(".ap-cancel")) { closePanel(); return; }
+    var save = e.target.closest(".ap-save");
+    if (!save) return;
+    var card = ins.cards[Number(save.dataset.index)];
+    var answer = document.getElementById("ap-answer").value.trim();
+    var key = document.getElementById("ap-key").value.trim();
+    if (answer.length < 2) { D.toast("Write the answer first"); return; }
+    if (key.length < 2) { D.toast("Say which field it belongs to"); return; }
+    D.send("PUT", "/insights/answer", { text: card.text, answer: answer, key: key })
+      .then(function () { return D.get("/insights"); })
+      .then(function (fresh) { ins = fresh; closePanel(); renderAsked(); D.toast("Saved. The chat will use this answer."); })
+      .catch(function (err) { D.toast(err.message); });
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") closePanel();
+  });
+
+  function render() {
+    renderKpis(); renderTrend(); renderTopics();
+    if (!document.getElementById("byDomain").classList.contains("hidden")) renderByDomain();
+  }
+
+  D.get("/dashboard").then(function (d) {
+    data = d;
+    D.setName(d.customer.name, "Overview");
+    D.setDomains(d.customer.domains);
+    render();
+    return Promise.all([D.get("/insights").catch(function () { return null; }),
+                        D.get("/feedback").catch(function () { return null; })]);
+  }).then(function (both) {
+    ins = both[0]; fb = both[1];
+    renderAsked(); renderTopics();
+  }).catch(function () {
+    D.setName("No dashboard for this address", "Overview");
+    document.querySelector("main").innerHTML = '<div class="card empty">Check the address, for example /c/loc_spice_garden_01.</div>';
+  });
+})();
+</script>
+</body>
+</html>

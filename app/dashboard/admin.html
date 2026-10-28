@@ -1,0 +1,1125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin · Conversion Agent (demo)</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/static/dash.css">
+  <style>
+    /* admin only: the side nav, the widget preview and the checklists */
+    .layout { display: grid; grid-template-columns: 236px minmax(0, 1fr); gap: 18px; align-items: start; }
+    .side { position: sticky; top: 16px; padding: 14px; }
+    .side button { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 8px; border: 0; background: transparent;
+      padding: 9px 11px; border-radius: 10px; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--ink); cursor: pointer; text-align: left; }
+    .side button:hover { background: var(--soft); }
+    .side button.on { background: var(--blue-soft); color: var(--blue); }
+    .side .group { font-size: 11px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin: 14px 11px 6px; font-weight: 700; }
+    .side .sub-item { padding-left: 22px; font-weight: 500; }
+    .badge { background: var(--bad); color: #fff; border-radius: 999px; font-size: 11px; padding: 0 7px; font-weight: 700; }
+    .stage { background: var(--soft); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: flex; justify-content: center; }
+    .desk { position: relative; width: 100%; height: 340px; background: #fff; border-radius: 12px; border: 1px solid var(--line); overflow: hidden; }
+    .desk .page { padding: 16px; }
+    .desk .page i { display: block; height: 9px; background: #edf2fa; border-radius: 6px; margin: 9px 0; }
+    .phone { position: relative; width: 270px; height: 470px; background: #fff; border: 8px solid #2b2420; border-radius: 30px; overflow: hidden; }
+    .phone .page { padding: 14px; }
+    .phone .page i { display: block; height: 8px; background: #edf2fa; border-radius: 6px; margin: 8px 0; }
+    .w { position: absolute; bottom: 14px; width: 262px; background: #fff; border-radius: 16px; box-shadow: 0 12px 30px rgba(0,0,0,.2); overflow: hidden; border: 1px solid rgba(0,0,0,.06); }
+    .w .hd { padding: 10px 12px; color: #fff; display: flex; align-items: center; gap: 8px; background: var(--wp); }
+    .w .av { width: 26px; height: 26px; border-radius: 50%; background: #fff; color: var(--wp); font-weight: 700; font-size: 10px; display: grid; place-items: center; flex: none; }
+    .w .bd { background: #f7f9fc; padding: 10px; display: grid; gap: 7px; }
+    .w .b1 { background: #fff; padding: 7px 9px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.07); max-width: 85%; color: var(--wtext); }
+    .w .b2 { background: var(--wp); color: #fff; padding: 7px 9px; border-radius: 12px; max-width: 75%; margin-left: auto; }
+    .w .ft { border-top: 1px solid #e4e9f2; padding: 8px; display: flex; gap: 6px; }
+    .w .ft span:first-child { flex: 1; border: 1px solid #e4e9f2; border-radius: 999px; padding: 6px 10px; font-size: 11.5px; color: #8a93a4; }
+    .w .ft span:last-child { width: 28px; height: 28px; border-radius: 50%; background: var(--wp); }
+    .w .fz { font-size: var(--fs); }
+    .colors { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .color { display: grid; gap: 5px; font-size: 12.5px; color: var(--muted); font-weight: 650; }
+    .color input[type=color] { width: 100%; height: 40px; border: 1px solid #d5ddea; border-radius: 10px; padding: 3px; background: #fff; cursor: pointer; }
+    .radios { display: flex; gap: 10px; flex-wrap: wrap; }
+    .radios label, .opt { border: 1px solid #d5ddea; border-radius: 10px; padding: 8px 12px; cursor: pointer; font-weight: 600; display: inline-flex; gap: 7px; align-items: center; }
+    .radios label:has(input:checked), .opt:has(input:checked) { border-color: var(--blue-2); background: var(--blue-soft); }
+    .split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 18px; align-items: start; }
+    .checklist { display: grid; gap: 8px; margin-top: 8px; }
+    .checklist > div { display: flex; align-items: center; gap: 10px; font-size: 13.5px; }
+    .tick { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; flex: none; }
+    .tick.ok { background: var(--ok-soft); color: var(--ok); }
+    .tick.no { background: var(--bad-soft); color: var(--bad); }
+    .chef { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 10px 0 14px; }
+    .chef label { display: flex; align-items: center; gap: 8px; border: 1px solid #d5ddea; border-radius: 10px; padding: 9px 11px; cursor: pointer; font-size: 13.5px; }
+    .chef label:has(input:checked) { border-color: var(--blue-2); background: var(--blue-soft); }
+    .conflict-card { border-color: #c9d9f5; }
+    .conflict { border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; background: #fff; }
+    .conflict + .conflict { margin-top: 10px; }
+    .conflict .pick { display: grid; gap: 7px; margin-top: 8px; font-size: 13.5px; }
+    .conflict .pick label { display: flex; gap: 8px; align-items: flex-start; }
+    .edit-row td { background: var(--soft); }
+    .edit-box { display: grid; gap: 12px; }
+    .days { display: flex; gap: 6px; flex-wrap: wrap; }
+    .days label { border: 1px solid #d5ddea; border-radius: 9px; padding: 6px 10px; font-size: 13px; font-weight: 650; cursor: pointer; background: #fff; }
+    .days label:has(input:checked) { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .days input { display: none; }
+    .banner { background: var(--warn-soft); border: 1px solid #f0dca6; border-radius: 12px; padding: 12px 14px; margin-top: 14px; font-size: 13.5px; }
+    .flash td { animation: flash 1.8s ease-out; }
+    @keyframes flash { from { background: #e3edfd; } to { background: transparent; } }
+    .savebar { position: sticky; bottom: 12px; background: #fff; border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow);
+      padding: 12px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; z-index: 5; }
+    .savebar .count { font-weight: 650; color: var(--navy); }
+    .savebar .grow { flex: 1; }
+    .pchat { border: 1px solid var(--line); border-radius: 16px; overflow: hidden; margin-top: 12px; }
+    .phd { background: var(--wp, #7a2e1d); color: #fff; padding: 12px 14px; display: flex; gap: 10px; align-items: center; font-weight: 650; font-size: var(--fs, 14px); font-family: var(--ff, Arial), sans-serif; }
+    .pav { width: 28px; height: 28px; border-radius: 50%; background: #fff; color: var(--wp, #7a2e1d); display: grid; place-items: center; font-size: 11px; font-weight: 800; flex: none; }
+    .pbody { background: #f7f9fc; min-height: 280px; max-height: 420px; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .pm { max-width: 82%; padding: 8px 12px; border-radius: 14px; line-height: 1.45; font-size: var(--fs, 14px); font-family: var(--ff, Arial), sans-serif; }
+    .pm.bot { background: #fff; color: var(--ink); align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+    .pm b { font-weight: 700; }
+    .poffer { display: flex; gap: 8px; margin: -2px 0 8px 0; }
+    .pm.visitor { background: var(--wp, #7a2e1d); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .pnote { font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .pfoot { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--line); background: #fff; }
+    .pfoot .input { flex: 1; }
+    .phd .ptitles { display: flex; flex-direction: column; line-height: 1.25; }
+    .psub { font-size: 11.5px; font-weight: 400; opacity: .9; display: flex; align-items: center; gap: 5px; }
+    .pdot { width: 7px; height: 7px; border-radius: 50%; background: #7fe3a6; display: inline-block; }
+    .pchips { display: grid; gap: 6px; padding: 8px 10px; border-top: 1px solid var(--line); background: #fff; }
+    .pchips button { border: 1px solid #e5dcd3; border-radius: 12px; background: #fff; color: var(--wp, #7a2e1d); font: inherit; font-size: var(--fs, 14px); font-weight: 600; padding: 8px 10px; cursor: pointer; text-align: center; }
+    .pchips button:hover { background: #fbf6f2; }
+    .pchips:empty { display: none; }
+    .ptyping { display: flex; gap: 5px; align-items: center; padding: 11px 13px; }
+    .ptyping span { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); animation: pbounce 1.2s infinite ease-in-out; }
+    .ptyping span:nth-child(2) { animation-delay: .15s; }
+    .ptyping span:nth-child(3) { animation-delay: .3s; }
+    @keyframes pbounce { 0%, 80%, 100% { transform: translateY(0); opacity: .35; } 40% { transform: translateY(-4px); opacity: 1; } }
+    .pinput { flex: 1; min-width: 0; border: 1px solid #ece4dc; border-radius: 999px; padding: 9px 14px; font: inherit; font-size: var(--fs, 14px); color: var(--ink); }
+    .psend { width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--wp, #7a2e1d); display: grid; place-items: center; cursor: pointer; flex: none; }
+    .psend svg { width: 16px; height: 16px; fill: #fff; }
+    .psend:disabled { opacity: .45; cursor: default; }
+    .facts-list { display: grid; gap: 8px; margin-top: 10px; max-height: 520px; overflow-y: auto; }
+    .fact-row { border: 1px solid var(--line); border-radius: 12px; padding: 9px 11px; background: var(--soft); }
+    .fact-row b { display: block; font-size: 12px; color: var(--navy); }
+    .fact-row span { font-size: 13px; word-break: break-word; }
+    .modal.wide { width: min(640px, 100%); max-height: 86vh; overflow-y: auto; }
+    .cp-item { border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-top: 10px; background: #fff; }
+    .cp-item .pick { display: grid; gap: 7px; margin-top: 8px; font-size: 13.5px; }
+    .cp-item .pick label { display: flex; gap: 8px; align-items: flex-start; }
+    .ta { width: 100%; border: 1px solid #d5ddea; border-radius: 10px; padding: 9px 12px; font: inherit; font-size: 14px; min-height: 70px; }
+    @media (max-width: 900px) { .split, .colors, .chef { grid-template-columns: minmax(0, 1fr); } .layout { grid-template-columns: minmax(0, 1fr); } }
+    /* phones: the side nav becomes one row that scrolls sideways, and the save bar stays small */
+    @media (max-width: 820px) {
+      .side { position: static; display: flex; gap: 6px; overflow-x: auto; padding: 8px; }
+      .side .group { display: none; }
+      .side button { width: auto; white-space: nowrap; padding: 8px 12px; }
+      .side .sub-item { padding-left: 12px; }
+      .side .badge { margin-left: 6px; }
+      .savebar { bottom: 8px; padding: 10px 12px; gap: 8px; }
+      .savebar .btn { padding: 7px 11px; font-size: 12.5px; }
+    }
+  </style>
+</head>
+<body>
+<header class="hero" id="hero"></header>
+
+<main class="wrap page">
+  <p class="demo-note">Demo admin page. Every change is saved to the change history. Knowledge changes are saved together with the Save button at the end of the section.</p>
+
+  <!-- Not subscribed: only the subscribe step is shown -->
+  <section id="subscribe" class="card hidden">
+    <h2>Subscribe to the Conversion Agent</h2>
+    <p class="hint">Choose a plan and subscribe. Payment is not built yet (demo).</p>
+    <div class="row mt">
+      <label class="field">Plan
+        <select id="plan" class="input" style="width:auto"><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select>
+      </label>
+      <button class="btn" id="subscribeBtn" type="button">Subscribe</button>
+    </div>
+  </section>
+
+  <div id="app" class="layout hidden">
+    <aside class="card side" id="side" aria-label="Admin sections"></aside>
+
+    <div class="content">
+      <!-- Domains and widget -->
+      <section id="pDomains">
+        <div class="card">
+          <div class="card-head">
+            <div><h2>Widget</h2><p class="hint">Turn the chat widget on or off for this business's pages. It goes on only when the checklist is done.</p></div>
+            <div class="row">
+              <span class="pill p-on" id="subPill"></span>
+              <button class="btn ghost small" id="cancelSub" type="button">Cancel subscription (demo)</button>
+            </div>
+          </div>
+          <div class="row spread" style="align-items:flex-start">
+            <div style="flex:1;min-width:260px">
+              <div class="checklist" id="checklist"></div>
+              <p class="msg-text hidden" id="widgetMsg"></p>
+            </div>
+            <div class="row" style="gap:12px">
+              <span class="label" id="widgetState"></span>
+              <label class="switch"><input type="checkbox" id="widgetSwitch" aria-label="Widget on or off"><span></span></label>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mt">
+          <div class="card-head"><div><h2>Chat contact</h2>
+            <p class="hint">When a visitor asks to call or message, the chat can show the business's phone and email. Off: the chat passes the visitor's details to the business instead.</p></div></div>
+          <div class="row spread" style="align-items:center">
+            <span class="label">Show the phone number in the chat</span>
+            <label class="switch"><input type="checkbox" id="contactPhone" aria-label="Show the phone number in the chat"><span></span></label>
+          </div>
+          <div class="row spread mt" style="align-items:center">
+            <span class="label">Show the email address in the chat</span>
+            <label class="switch"><input type="checkbox" id="contactEmail" aria-label="Show the email address in the chat"><span></span></label>
+          </div>
+          <p class="msg-text hidden" id="contactMsg"></p>
+        </div>
+
+        <div class="card mt">
+          <div class="card-head"><div><h2>Domains</h2>
+            <p class="hint" id="domHint"></p></div></div>
+          <div id="domRows" class="grid" style="gap:10px"></div>
+          <div class="row mt">
+            <button class="btn ghost" id="addDomain" type="button">Add domain</button>
+            <button class="btn" id="saveDomains" type="button">Save domains</button>
+          </div>
+          <p class="msg-text hidden" id="domMsg"></p>
+        </div>
+
+        <div class="card mt">
+          <div class="card-head"><div><h2>Widget look</h2>
+            <p class="hint">Choose the font, colours and side. The preview shows the change before you save.</p></div></div>
+          <div class="split">
+            <div class="grid" style="gap:14px">
+              <label class="field">Domain <select id="styleDomain" class="input"></select></label>
+              <div class="grid g2" style="gap:12px">
+                <label class="field">Font size <select id="fontSize" class="input"></select></label>
+                <label class="field">Font style <select id="fontFamily" class="input"></select></label>
+              </div>
+              <div class="colors">
+                <label class="color">Main colour<input type="color" id="cPrimary"></label>
+                <label class="color">Accent colour<input type="color" id="cAccent"></label>
+                <label class="color">Text colour<input type="color" id="cText"></label>
+              </div>
+              <div class="field">Placement
+                <div class="radios">
+                  <label><input type="radio" name="place" value="left"> Left</label>
+                  <label><input type="radio" name="place" value="right"> Right</label>
+                </div>
+              </div>
+              <div class="row">
+                <button class="btn" id="saveStyle" type="button">Save</button>
+                <button class="btn ghost" id="resetStyle" type="button">Reset to default</button>
+              </div>
+            </div>
+            <div>
+              <div class="seg" id="device" style="margin-bottom:10px">
+                <button data-d="desktop" class="on">Desktop</button>
+                <button data-d="mobile">Mobile</button>
+              </div>
+              <div class="stage">
+                <div id="desktop" class="desk"><div class="page"><i style="width:60%"></i><i style="width:90%"></i><i style="width:80%"></i><i style="width:70%"></i><i style="width:85%"></i></div></div>
+                <div id="mobile" class="phone hidden"><div class="page"><i style="width:60%"></i><i style="width:90%"></i><i style="width:80%"></i><i style="width:70%"></i><i style="width:85%"></i><i style="width:55%"></i></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Knowledge: get data from the web page -->
+      <section id="pGet" class="hidden">
+        <div class="card">
+          <div class="card-head"><div><h2>Get data from webpage</h2>
+            <p class="hint" id="scrapeHint"></p></div></div>
+          <div class="row" style="align-items:flex-end">
+            <label class="field" style="flex:1;min-width:240px">Web page link<input type="url" id="scrapeUrl" placeholder="https://"></label>
+            <button class="btn" id="scrapeBtn" type="button">Get data from webpage</button>
+          </div>
+          <p class="msg-text hidden" id="scrapeMsg"></p>
+        </div>
+
+        <div class="card conflict-card mt hidden" id="conflictCard"></div>
+
+        <div class="card mt">
+          <div class="card-head"><div><h2>What we found on the web page</h2>
+            <p class="hint">Each field, what the web page says, what the database says, and which one the chatbot uses.</p></div></div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Field</th><th>On the web page</th><th class="hide-sm">In the database</th><th>Status</th></tr></thead>
+            <tbody id="foundRows"></tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- Knowledge: menu -->
+      <section id="pMenu" class="hidden">
+        <div class="card">
+          <div class="card-head"><div><h2>Chef's specials</h2>
+            <p class="hint">Choose two or three dishes from the menu. The widget needs them before it can go on.</p></div></div>
+          <div class="chef" id="chefList"></div>
+          <div class="row" style="align-items:flex-end">
+            <label class="field" style="flex:1;min-width:240px">Full menu link<input type="url" id="menuUrl" placeholder="https://"></label>
+          </div>
+          <p class="sub" id="chefCount" style="margin:8px 0 0"></p>
+        </div>
+
+        <div class="card mt">
+          <div class="card-head"><div><h2>Add a dish</h2>
+            <p class="hint">A new dish is available every day during opening hours until you change its timing below.</p></div></div>
+          <div class="grid" style="grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) 120px auto;gap:12px;align-items:end">
+            <label class="field">Dish name<input type="text" id="newName" maxlength="60" placeholder="for example, Masala dosa"></label>
+            <label class="field">Section<input type="text" id="newSection" list="sectionList" maxlength="40" placeholder="for example, Starter"></label>
+            <label class="field">Price<input type="number" id="newPrice" min="0" max="999" step="0.01" placeholder="0.00"></label>
+            <label class="opt" style="height:40px"><input type="checkbox" id="newVeg"> Vegetarian</label>
+          </div>
+          <datalist id="sectionList"></datalist>
+          <div class="row mt"><button class="btn ghost" id="addDish" type="button">Add dish</button></div>
+          <p class="msg-text hidden" id="newMsg"></p>
+        </div>
+
+        <div class="card mt">
+          <div class="card-head"><div><h2>Dishes and when they are available</h2>
+            <p class="hint">By default every dish is available every day during opening hours (<span id="hoursText"></span>). Use Edit timing to change the days and the hours. The switch takes a dish off the menu the chatbot uses.</p></div></div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Dish</th><th>Section</th><th>Price</th><th>Available</th><th>On the menu</th><th></th></tr></thead>
+            <tbody id="dishRows"></tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- Knowledge: default fields -->
+      <section id="pDefaults" class="hidden">
+        <div class="card">
+          <div class="card-head"><div><h2>Default fields</h2>
+            <p class="hint">The confirmed values the chatbot can use. Edit a value by hand, and use the switch to share it with the chatbot or keep it back.</p></div></div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Field</th><th>Value</th><th>Source</th><th>Share with chatbot</th><th></th></tr></thead>
+            <tbody id="defRows"></tbody>
+          </table></div>
+          <div class="banner hidden" id="dbBanner"></div>
+          <p class="sub" id="defNote" style="margin:12px 0 0"></p>
+        </div>
+      </section>
+
+      <!-- Knowledge: custom fields -->
+      <section id="pCustom" class="hidden">
+        <div class="grid g2">
+          <div class="card">
+            <div class="card-head"><div><h2>Add a custom field</h2>
+              <p class="hint">Something the business has that is not in the default list. The chatbot can use it once it is saved.</p></div></div>
+            <div class="grid" style="gap:12px">
+              <label class="field">Name<input type="text" id="cKey" maxlength="40" placeholder="for example, Kids menu"></label>
+              <label class="field">Value<textarea id="cVal" rows="3" class="ta" maxlength="300" placeholder="What the chatbot should say"></textarea></label>
+              <div class="row"><button class="btn ghost" id="cAdd" type="button">Add field</button></div>
+              <p class="msg-text hidden" id="cMsg"></p>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div><h2>Custom fields</h2><p class="hint" id="cCount"></p></div></div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Name</th><th>Value</th><th>Status</th></tr></thead>
+              <tbody id="customRows"></tbody>
+            </table></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- One Save for every Knowledge change, at the end of the section -->
+      <div class="savebar hidden" id="saveBar">
+        <span class="count" id="saveCount"></span>
+        <span class="msg-text hidden" id="saveMsg" style="margin:0"></span>
+        <span class="grow"></span>
+        <button class="btn ghost" id="discardAll" type="button">Discard changes</button>
+        <button class="btn" id="saveAll" type="button">Save all changes</button>
+      </div>
+
+      <!-- Playground: try the chatbot with visitor questions -->
+      <section id="pPlay" class="hidden">
+        <div class="grid" style="grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;align-items:start">
+          <div class="card">
+            <div class="card-head"><div><h2>Playground</h2>
+              <p class="hint">The same chat as the widget on the customer's page. It answers from your saved changes that are shared with the chatbot. Unsaved changes are not used.</p></div>
+              <button class="btn ghost small" id="playClear" type="button">Clear chat</button></div>
+            <div class="pchat" id="pChat">
+              <div class="phd"><span class="pav">AI</span><span class="ptitles"><span id="pName"></span><span class="psub"><span class="pdot"></span>Online</span></span></div>
+              <div class="pbody" id="pMsgs"></div>
+              <div class="pchips" id="pChips"></div>
+              <form class="pfoot" id="pForm" autocomplete="off">
+                <input class="pinput" id="pInput" maxlength="500" placeholder="Type your message" aria-label="Visitor question">
+                <button class="psend" id="pSend" type="submit" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button>
+              </form>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div><h2>What the chatbot can use</h2>
+              <p class="hint" id="pFactsHint"></p></div></div>
+            <div class="facts-list" id="pFacts"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Recent changes: its own section, from the side nav -->
+      <section id="pChanges" class="hidden">
+        <div class="card">
+          <div class="card-head"><div><h2>Recent changes</h2><p class="hint">Every change saved to the change history, newest first, with the time and who made it.</p></div></div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>When</th><th>Who</th><th>Where</th><th>What changed</th></tr></thead>
+            <tbody id="changeRows"></tbody>
+          </table></div>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<!-- Conflicts pop-up: opens when the Admin page is entered, until it is closed or every conflict is resolved -->
+<div class="modal-back" id="conflictPop">
+  <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="cpTitle">
+    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap">
+      <div><h2 id="cpTitle"></h2>
+        <p class="hint" id="cpHint" style="margin:6px 0 0"></p></div>
+      <button class="x" id="cpClose" aria-label="Close" type="button">×</button>
+    </div>
+    <div id="cpList"></div>
+  </div>
+</div>
+
+<script src="/static/dash.js"></script>
+<script>
+(function () {
+  "use strict";
+  var D = Dash;
+  var DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  var KNOW = ["get", "menu", "defaults", "custom"];
+  var STATUS = {
+    chosen: ["p-on", "Confirmed"], database: ["p-info", "From database"], web_only: ["p-info", "From web page"],
+    missing: ["p-warn", "Not set"], conflict: ["p-bad", "Conflict"]
+  };
+  var PAGE_NAME = { admin: "Admin", leads: "Leads" };
+  var data = { sub: null, domains: null, style: null, admin: null, knowledge: null, menu: null, custom: null, changes: [], facts: [], widget: null };
+  var play = { msgs: [], busy: false, started: false, quick: null, source: "" };
+  var ui = { section: "domains", arg: null, current: null, editDish: null, editState: null, editKey: null, lastRaw: "", popupShown: false, domainDraft: null };
+  var draft = emptyDraft();
+
+  D.hero({ page: "admin", title: "Admin", domain: false, periods: null });
+
+  function emptyDraft() {
+    return { newDishes: [], dishes: {}, choices: {}, share: {}, customs: [], chef: null };
+  }
+  function changeCount() {
+    return draft.newDishes.length + Object.keys(draft.dishes).length + Object.keys(draft.choices).length +
+      Object.keys(draft.share).length + draft.customs.length + (draft.chef ? 1 : 0);
+  }
+  function dirty() { return changeCount() > 0; }
+  function msg(id, text) {
+    var el = document.getElementById(id);
+    if (!text) { el.classList.add("hidden"); el.textContent = ""; return; }
+    el.textContent = text; el.classList.remove("hidden");
+  }
+  function call(method, path, body) { return D.send(method, path, body); }
+  function dayText(days) {
+    if (days.length === 7) return "Every day";
+    if (days.length === 5 && [0, 1, 2, 3, 4].every(function (x) { return days.indexOf(x) >= 0; })) return "Mon–Fri";
+    return days.slice().sort().map(function (x) { return DAY_NAMES[x]; }).join(", ");
+  }
+  function normal(text) { return String(text || "").toLowerCase().replace(/[^a-z0-9]/g, ""); }
+
+  // The dish as it will be after a save: the saved timing, or the staged change.
+  function effectiveDish(dish) {
+    var staged = draft.dishes[dish.id];
+    return staged ? Object.assign({}, dish, staged) : dish;
+  }
+  function availability(d) {
+    var from = d.start || data.menu.open_from, to = d.end || data.menu.open_to;
+    return dayText(d.days) + ", " + from + "–" + to + (d.start ? "" : " (opening hours)");
+  }
+  // The value a default field shows, with a staged choice applied.
+  function effectiveValue(f) {
+    var c = draft.choices[f.key];
+    if (!c) return f.value;
+    return { database: f.database, scraped: f.scraped, manual: c.manual }[c.source];
+  }
+  function effectiveShared(f) {
+    return draft.share[f.key] ? draft.share[f.key].enabled : f.enabled;
+  }
+
+  // ---- loading ----
+  function refresh() {
+    return Promise.all([call("GET", "/subscription"), call("GET", "/domains"), call("GET", "/style"), call("GET", "/admin"),
+                        call("GET", "/knowledge"), call("GET", "/menu"), call("GET", "/custom-fields"), call("GET", "/changes"),
+                        call("GET", "/playground"), call("GET", "/chat-contact")])
+      .then(function (r) {
+        data.sub = r[0]; data.domains = r[1]; data.style = r[2]; data.admin = r[3];
+        data.knowledge = r[4]; data.menu = r[5]; data.custom = r[6]; data.changes = r[7].changes; data.facts = r[8].facts; data.widget = r[8].widget;
+        data.contact = r[9];
+        document.getElementById("contactPhone").checked = !!data.contact.phone;
+        document.getElementById("contactEmail").checked = !!data.contact.email;
+        D.setName(data.admin.business.name, "Admin");
+        render();
+      }).catch(function () {
+        D.setName("No admin page for this address", "Admin");
+        document.querySelector(".content").innerHTML = '<div class="card">Check the address, for example /c/loc_spice_garden_01/admin.</div>';
+      });
+  }
+
+  // ---- sections and the side nav ----
+  function parseHash(raw) {
+    var colon = raw.indexOf(":");
+    var head = colon >= 0 ? raw.slice(0, colon) : raw;
+    return { section: ["domains", "get", "menu", "defaults", "custom", "changes", "playground"].indexOf(head) >= 0 ? head : "domains",
+             arg: colon >= 0 ? decodeURIComponent(raw.slice(colon + 1)) : null };
+  }
+  function currentHash() { return location.hash.replace(/^#/, ""); }
+  function applyHash() {
+    var p = parseHash(currentHash());
+    ui.section = p.section; ui.arg = p.arg; ui.lastRaw = currentHash();
+    if (data.knowledge) render();
+    if (ui.section === "custom" && ui.arg) document.getElementById("cKey").value = ui.arg;
+    if (ui.section === "defaults" && ui.arg) highlight(ui.arg);
+  }
+  function setHash(section, arg) {
+    var h = section + (arg ? ":" + encodeURIComponent(arg) : "");
+    if (currentHash() === h) { applyHash(); } else { location.hash = h; }
+  }
+  // Going from Knowledge to another section asks about unsaved changes first.
+  function navigate(section, arg) {
+    var leaving = KNOW.indexOf(ui.section) >= 0 && KNOW.indexOf(section) < 0;
+    if (!leaving || !dirty()) { setHash(section, arg); return; }
+    D.confirmLeave().then(function (go) { if (go) setHash(section, arg); });
+  }
+  window.addEventListener("hashchange", function () {
+    var p = parseHash(currentHash());
+    var leaving = KNOW.indexOf(ui.section) >= 0 && KNOW.indexOf(p.section) < 0;
+    if (leaving && dirty()) {
+      D.confirmLeave().then(function (go) { if (go) applyHash(); else location.hash = ui.lastRaw; });
+      return;
+    }
+    applyHash();
+  });
+  function highlight(key) {
+    var row = document.querySelector('#defRows [data-key="' + key + '"]');
+    if (!row) return;
+    row.scrollIntoView({ block: "center" });
+    row.classList.remove("flash"); void row.offsetWidth; row.classList.add("flash");
+  }
+  function renderSide() {
+    var conflicts = data.knowledge.conflicts;
+    var item = function (s, label, extra, cls) {
+      return '<button data-s="' + s + '" class="' + (cls || "") + (ui.section === s ? " on" : "") + '">' + label + (extra || "") + "</button>";
+    };
+    document.getElementById("side").innerHTML = item("domains", "Domains and widget") + item("playground", "Playground") +
+      '<div class="group">Knowledge</div>' +
+      item("get", "Get data from webpage", conflicts ? '<span class="badge">' + conflicts + "</span>" : "", "sub-item") +
+      item("menu", "Menu", "", "sub-item") + item("defaults", "Default fields", "", "sub-item") +
+      item("custom", "Custom fields", "", "sub-item") +
+      '<div class="group">History</div>' + item("changes", "Recent changes");
+  }
+  document.getElementById("side").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-s]"); if (b) navigate(b.dataset.s);
+  });
+
+  // ---- the widget switch and its checklist ----
+  function renderWidget() {
+    var w = data.admin.widget, specials = data.admin.chef.specials.length, conflicts = data.knowledge.conflicts;
+    document.getElementById("subPill").textContent = "Subscribed · " + data.sub.plan;
+    document.getElementById("widgetSwitch").checked = !!w.enabled;
+    document.getElementById("widgetState").textContent = w.enabled ? "On" : "Off";
+    function row(ok, text, section, link) {
+      return '<div><span class="tick ' + (ok ? "ok" : "no") + '">' + (ok ? "✓" : "!") + "</span>" + text +
+        (ok ? "" : ' · <a href="#' + section + '" style="color:var(--blue);font-weight:650">' + link + "</a>") + "</div>";
+    }
+    document.getElementById("checklist").innerHTML = '<p class="hint" style="margin:0 0 4px">Before the widget can go on:</p>' +
+      row(specials >= 2, "Chef's specials chosen (two or three)", "menu", "Choose on Menu") +
+      row(conflicts === 0, conflicts ? conflicts + " conflict(s) to resolve" : "No conflicts to resolve", "get", "Resolve on Get data from webpage");
+  }
+  document.getElementById("widgetSwitch").addEventListener("change", function (e) {
+    var want = e.target.checked;
+    call("PUT", "/widget-status", { enabled: want }).then(function () {
+      msg("widgetMsg", ""); D.toast(want ? "Widget is on" : "Widget is off"); refresh();
+    }).catch(function (err) { e.target.checked = !want; msg("widgetMsg", err.message); });
+  });
+  function saveContact() {
+    var body = { phone: document.getElementById("contactPhone").checked, email: document.getElementById("contactEmail").checked };
+    call("PUT", "/chat-contact", body).then(function () {
+      msg("contactMsg", ""); D.toast("Chat contact saved"); refresh();
+    }).catch(function (err) { msg("contactMsg", err.message); refresh(); });
+  }
+  document.getElementById("contactPhone").addEventListener("change", saveContact);
+  document.getElementById("contactEmail").addEventListener("change", saveContact);
+  document.getElementById("cancelSub").addEventListener("click", function () {
+    call("PUT", "/subscription", { subscribed: false, plan: data.sub.plan }).then(function () { refresh(); D.toast("Subscription cancelled (demo)"); })
+      .catch(function (err) { D.toast(err.message); });
+  });
+  document.getElementById("subscribeBtn").addEventListener("click", function () {
+    call("PUT", "/subscription", { subscribed: true, plan: document.getElementById("plan").value }).then(function () {
+      D.toast("Subscribed"); refresh();
+    }).catch(function (err) { D.toast(err.message); });
+  });
+
+  // ---- domains ----
+  // The domains being edited: ui.domainDraft holds the typed list until it is saved (null: the saved list).
+  function typedDomains() {
+    return Array.prototype.map.call(document.querySelectorAll("#domRows input[data-dom]"), function (i) { return i.value; });
+  }
+  function renderDomains() {
+    var list = ui.domainDraft || data.domains.domains.slice();
+    var max = data.domains.max;
+    document.getElementById("domRows").innerHTML = list.map(function (d, i) {
+      return '<div class="row" style="flex-wrap:nowrap;align-items:flex-end"><label class="field" style="flex:1">Domain ' + (i + 1) +
+        '<input type="text" data-dom="' + i + '" maxlength="120" value="' + D.esc(d) + '" placeholder="example.com"></label>' +
+        (list.length > 1 ? '<button class="btn ghost small" data-dom-remove="' + i + '" type="button">Remove</button>' : "") + "</div>";
+    }).join("");
+    document.getElementById("addDomain").disabled = list.length >= max;
+    var defaults = data.domains.defaults;
+    document.getElementById("domHint").textContent = "Starts with your personal webpage (" + (defaults[0] || "–") +
+      ") and your experience profile page (" + (defaults[1] || "–") + "). Add up to " + max + " domains in all.";
+  }
+  document.getElementById("domRows").addEventListener("input", function () { ui.domainDraft = typedDomains(); });
+  document.getElementById("domRows").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-dom-remove]"); if (!b) return;
+    var list = typedDomains(); list.splice(Number(b.dataset.domRemove), 1);
+    ui.domainDraft = list; renderDomains();
+  });
+  document.getElementById("addDomain").addEventListener("click", function () {
+    var list = typedDomains();
+    if (list.length < data.domains.max) list.push("");
+    ui.domainDraft = list; renderDomains();
+  });
+  document.getElementById("saveDomains").addEventListener("click", function () {
+    var list = typedDomains().map(function (d) { return d.trim(); }).filter(Boolean);
+    call("PUT", "/domains", { domains: list }).then(function () {
+      ui.domainDraft = null; msg("domMsg", ""); D.toast("Domains saved"); refresh();
+    }).catch(function (err) { msg("domMsg", err.message); });
+  });
+
+  // ---- widget look with the preview ----
+  function fillSelects() {
+    document.getElementById("fontSize").innerHTML = data.style.font_sizes.map(function (n) { return '<option value="' + n + '">' + n + " px</option>"; }).join("");
+    document.getElementById("fontFamily").innerHTML = data.style.font_families.map(function (f) { return "<option>" + D.esc(f) + "</option>"; }).join("");
+  }
+  function renderStyleDomains() {
+    var sel = document.getElementById("styleDomain"), list = data.domains.domains;
+    sel.innerHTML = list.map(function (x) { return "<option>" + D.esc(x) + "</option>"; }).join("");
+    if (list.length) showStyle(ui.current && list.indexOf(ui.current) >= 0 ? ui.current : list[0]);
+  }
+  function showStyle(domain) {
+    ui.current = domain;
+    var s = data.style.domains[domain] || data.style.defaults;
+    document.getElementById("styleDomain").value = domain;
+    document.getElementById("fontSize").value = s.font_size;
+    document.getElementById("fontFamily").value = s.font_family;
+    document.getElementById("cPrimary").value = s.primary;
+    document.getElementById("cAccent").value = s.accent;
+    document.getElementById("cText").value = s.text;
+    document.querySelectorAll('input[name="place"]').forEach(function (r) { r.checked = r.value === s.placement; });
+    paint();
+  }
+  function currentForm() {
+    return {
+      font_size: Number(document.getElementById("fontSize").value),
+      font_family: document.getElementById("fontFamily").value,
+      primary: document.getElementById("cPrimary").value,
+      accent: document.getElementById("cAccent").value,
+      text: document.getElementById("cText").value,
+      placement: (document.querySelector('input[name="place"]:checked') || { value: "right" }).value
+    };
+  }
+  function paint() {
+    var s = currentForm();
+    ["desktop", "mobile"].forEach(function (id) {
+      var box = document.getElementById(id);
+      var w = document.createElement("div");
+      w.className = "w";
+      w.setAttribute("style", (s.placement === "left" ? "left:14px" : "right:14px") + ";--wp:" + s.primary + ";--wtext:" + s.text +
+        ";font-size:" + s.font_size + "px;font-family:'" + s.font_family + "',serif;");
+      if (id === "mobile") { w.style.left = "0"; w.style.right = "0"; w.style.width = "auto"; w.style.margin = "0 10px"; }
+      w.innerHTML = '<div class="hd"><div class="av">AI</div><div class="fz">' + D.esc(data.admin.business.name) + '</div></div>' +
+        '<div class="bd"><div class="b1 fz">Hi, I\'m an AI assistant for ' + D.esc(data.admin.business.name) + '.</div><div class="b2 fz">Show me the menu</div></div>' +
+        '<div class="ft"><span class="fz">Type your message</span><span></span></div>';
+      var old = box.querySelector(".w"); if (old) old.remove();
+      box.appendChild(w);
+    });
+  }
+  ["fontSize", "fontFamily", "cPrimary", "cAccent", "cText"].forEach(function (id) {
+    document.getElementById(id).addEventListener("input", paint);
+  });
+  document.querySelectorAll('input[name="place"]').forEach(function (r) { r.addEventListener("change", paint); });
+  document.getElementById("styleDomain").addEventListener("change", function (e) { showStyle(e.target.value); });
+  document.getElementById("device").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    document.querySelectorAll("#device button").forEach(function (x) { x.classList.toggle("on", x === b); });
+    document.getElementById("desktop").classList.toggle("hidden", b.dataset.d !== "desktop");
+    document.getElementById("mobile").classList.toggle("hidden", b.dataset.d !== "mobile");
+    paint();
+  });
+  document.getElementById("saveStyle").addEventListener("click", function () {
+    call("PUT", "/style/" + encodeURIComponent(ui.current), currentForm()).then(function () { D.toast("Widget look saved for " + ui.current); refresh(); })
+      .catch(function (err) { D.toast(err.message); });
+  });
+  document.getElementById("resetStyle").addEventListener("click", function () {
+    call("POST", "/style/" + encodeURIComponent(ui.current) + "/reset").then(function () { D.toast("Reset to the default look"); refresh(); })
+      .catch(function (err) { D.toast(err.message); });
+  });
+
+  // ---- get data from the web page (checking the page is an action of its own) ----
+  function renderGet() {
+    var k = data.knowledge;
+    document.getElementById("scrapeUrl").value = k.scrape.url || "";
+    document.getElementById("scrapeHint").textContent = "We read your web page and compare it with the database." +
+      (k.scrape.checked_at ? " Last checked " + D.when(k.scrape.checked_at) + "." : " Not checked yet.");
+    var conflicts = k.fields.filter(function (f) { return f.status === "conflict"; });
+    var card = document.getElementById("conflictCard");
+    card.classList.toggle("hidden", conflicts.length === 0);
+    card.innerHTML = conflicts.length ? '<div class="card-head"><div><h2>' + conflicts.length + " conflict" + (conflicts.length > 1 ? "s" : "") +
+      ' to resolve</h2><p class="hint">The web page and the database disagree about these fields. Choose the value to use, then press Save all changes. ' +
+      "Until then the chatbot keeps using the value you confirmed before.</p></div></div>" +
+      conflicts.map(function (f) {
+        var staged = draft.choices[f.key];
+        var source = staged ? staged.source : f.source;
+        var opts = [];
+        if (f.database) opts.push(["database", "Use the database value: " + f.database]);
+        if (f.scraped) opts.push(["scraped", "Use the web page value: " + f.scraped]);
+        opts.push(["manual", "Enter it by hand"]);
+        return '<div class="conflict" data-key="' + f.key + '"><div class="row spread"><div style="font-weight:700">' + D.esc(f.label) + "</div>" +
+          (staged ? '<span class="pill p-draft">Chosen, not saved</span>' : "") + "</div>" +
+          '<div class="pick">' + opts.map(function (o) {
+            return '<label><input type="radio" name="c-' + f.key + '" value="' + o[0] + '"' + (source === o[0] ? " checked" : "") + "> " + D.esc(o[1]) + "</label>";
+          }).join("") + '</div><input class="input' + (source === "manual" ? "" : " hidden") + '" type="text" data-manual="' + f.key +
+          '" value="' + D.esc(staged && staged.manual ? staged.manual : (f.manual || "")) +
+          '" placeholder="Type the ' + D.esc(f.label.toLowerCase()) + '" style="margin-top:8px">' +
+          '<div class="row" style="margin-top:10px"><button class="btn small" data-use="' + f.key + '" type="button">Use this value</button></div></div>';
+      }).join("") : "";
+    document.getElementById("foundRows").innerHTML = k.fields.map(function (f) {
+      var s = STATUS[f.status] || STATUS.chosen;
+      return "<tr><td class=\"name\">" + D.esc(f.label) + "</td><td>" + (f.scraped ? D.esc(f.scraped) : '<span class="sub">not found</span>') +
+        '</td><td class="hide-sm">' + (f.database ? D.esc(f.database) : '<span class="sub">none</span>') + '</td><td><span class="pill ' + s[0] + '">' + s[1] + "</span></td></tr>";
+    }).join("");
+  }
+  document.getElementById("conflictCard").addEventListener("change", function (e) {
+    if (e.target.type !== "radio") return;
+    var key = e.target.name.slice(2);
+    document.querySelector('[data-manual="' + key + '"]').classList.toggle("hidden", e.target.value !== "manual");
+  });
+  document.getElementById("conflictCard").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-use]"); if (!b) return;
+    var key = b.dataset.use;
+    var pick = document.querySelector('input[name="c-' + key + '"]:checked');
+    if (!pick) { D.toast("Choose a value first"); return; }
+    var manual = document.querySelector('[data-manual="' + key + '"]').value.trim();
+    if (pick.value === "manual" && !manual) { D.toast("Type the value first"); return; }
+    draft.choices[key] = { source: pick.value, manual: pick.value === "manual" ? manual : null };
+    render();
+  });
+  document.getElementById("scrapeBtn").addEventListener("click", function () {
+    var url = document.getElementById("scrapeUrl").value.trim();
+    call("POST", "/scrape", { url: url }).then(function (r) {
+      msg("scrapeMsg", "");
+      ui.popupShown = false;   // a new check can bring conflicts back: the pop-up opens again
+      D.toast(r.conflicts ? r.conflicts + " conflict(s) to resolve" : "Web page checked. No conflicts.");
+      refresh();
+    }).catch(function (err) { msg("scrapeMsg", err.message); });
+  });
+
+  // ---- menu: chef's specials, add a dish, dishes and their timing ----
+  function renderMenu() {
+    var chef = data.admin.chef;
+    var picks = draft.chef ? draft.chef.specials : chef.specials;
+    document.getElementById("chefList").innerHTML = chef.dishes.map(function (n) {
+      return '<label><input type="checkbox" value="' + D.esc(n) + '"' + (picks.indexOf(n) >= 0 ? " checked" : "") + ">" + D.esc(n) + "</label>";
+    }).join("");
+    document.getElementById("menuUrl").value = draft.chef ? draft.chef.menu_url : chef.menu_url;
+    countChef();
+    document.getElementById("hoursText").textContent = data.menu.hours || "your opening hours";
+    var sections = {};
+    data.menu.dishes.forEach(function (d) { sections[d.section] = true; });
+    draft.newDishes.forEach(function (d) { sections[d.section] = true; });
+    document.getElementById("sectionList").innerHTML = Object.keys(sections).map(function (s) { return '<option value="' + D.esc(s) + '">'; }).join("");
+
+    var rows = data.menu.dishes.map(function (dish) {
+      var eff = effectiveDish(dish), changed = !!draft.dishes[dish.id];
+      var editing = ui.editDish === dish.id;
+      var row = '<tr data-dish="' + dish.id + '"' + (eff.enabled ? "" : ' style="opacity:.55"') + "><td class=\"name\">" + D.esc(dish.name) +
+        (dish.vegetarian ? ' <span class="tag">veg</span>' : "") + (changed ? ' <span class="pill p-draft">Not saved</span>' : "") + "</td><td>" + D.esc(dish.section) +
+        "</td><td>" + (dish.price != null ? "$" + Number(dish.price).toFixed(2) : "–") + "</td><td>" + D.esc(availability(eff)) +
+        '</td><td><label class="switch"><input type="checkbox" data-dish-on="' + dish.id + '"' + (eff.enabled ? " checked" : "") +
+        '><span></span></label></td><td><button class="btn ghost small" data-dish-edit="' + dish.id + '" type="button">' +
+        (editing ? "Close" : "Edit timing") + "</button></td></tr>";
+      if (!editing) return row;
+      var st = ui.editState;
+      return row + '<tr class="edit-row"><td colspan="6"><div class="edit-box">' +
+        '<div class="field">Days available<div class="days">' + DAY_NAMES.map(function (n, i) {
+          return '<label><input type="checkbox" data-day="' + i + '"' + (st.days.indexOf(i) >= 0 ? " checked" : "") + "> " + n + "</label>";
+        }).join("") + "</div></div>" +
+        '<div class="grid g2" style="gap:12px;max-width:440px"><label class="field">From<input type="time" id="dStart" value="' + st.start + '"></label>' +
+        '<label class="field">Until<input type="time" id="dEnd" value="' + st.end + '"></label></div>' +
+        '<p class="sub" style="margin:0">' + (st.usingHours ? "Using the opening hours." : "Using the times you set.") + "</p>" +
+        '<div class="row"><button class="btn small" data-dish-apply="' + dish.id + '" type="button">Apply timing</button>' +
+        '<button class="btn ghost small" data-dish-hours type="button">Reset to opening hours</button>' +
+        '<button class="btn ghost small" data-dish-cancel type="button">Cancel</button></div>' +
+        '<p class="msg-text hidden" id="dishMsg"></p></div></td></tr>';
+    }).join("");
+    rows += draft.newDishes.map(function (d, i) {
+      return '<tr><td class="name">' + D.esc(d.name) + (d.vegetarian ? ' <span class="tag">veg</span>' : "") +
+        ' <span class="pill p-draft">Not saved</span></td><td>' + D.esc(d.section) + "</td><td>" +
+        (d.price != null ? "$" + Number(d.price).toFixed(2) : "–") + '</td><td class="sub">Every day, opening hours</td><td>–</td>' +
+        '<td><button class="btn ghost small" data-new-remove="' + i + '" type="button">Remove</button></td></tr>';
+    }).join("");
+    document.getElementById("dishRows").innerHTML = rows || '<tr><td colspan="6" class="empty">No dishes on the menu yet.</td></tr>';
+  }
+  function countChef() {
+    var n = document.querySelectorAll("#chefList input:checked").length;
+    document.getElementById("chefCount").textContent = n + " of 3 chosen" + (n >= 2 && n <= 3 ? "" : " (choose 2 or 3)");
+  }
+  function stageChef() {
+    draft.chef = {
+      specials: Array.prototype.map.call(document.querySelectorAll("#chefList input:checked"), function (b) { return b.value; }),
+      menu_url: document.getElementById("menuUrl").value.trim()
+    };
+    render();
+  }
+  document.getElementById("chefList").addEventListener("change", function (e) {
+    if (e.target.checked && document.querySelectorAll("#chefList input:checked").length > 3) { e.target.checked = false; D.toast("Choose up to three chef's specials"); return; }
+    countChef(); stageChef();
+  });
+  document.getElementById("menuUrl").addEventListener("change", stageChef);
+  document.getElementById("addDish").addEventListener("click", function () {
+    var name = document.getElementById("newName").value.replace(/\s+/g, " ").trim();
+    var section = document.getElementById("newSection").value.replace(/\s+/g, " ").trim().toLowerCase() || "other";
+    var priceText = document.getElementById("newPrice").value;
+    var price = priceText === "" ? null : Number(priceText);
+    var taken = data.menu.dishes.concat(draft.newDishes).some(function (d) { return d.name.toLowerCase() === name.toLowerCase(); });
+    if (name.length < 2) { msg("newMsg", "The dish name needs at least 2 characters."); return; }
+    if (taken) { msg("newMsg", '"' + name + '" is already on the menu.'); return; }
+    if (price !== null && (isNaN(price) || price < 0 || price > 999)) { msg("newMsg", "The price must be between 0 and 999."); return; }
+    draft.newDishes.push({ name: name, section: section, price: price, vegetarian: document.getElementById("newVeg").checked });
+    msg("newMsg", "");
+    document.getElementById("newName").value = ""; document.getElementById("newPrice").value = ""; document.getElementById("newVeg").checked = false;
+    render();
+  });
+  document.getElementById("dishRows").addEventListener("click", function (e) {
+    var edit = e.target.closest("[data-dish-edit]"), apply = e.target.closest("[data-dish-apply]"),
+        hours = e.target.closest("[data-dish-hours]"), cancel = e.target.closest("[data-dish-cancel]"), remove = e.target.closest("[data-new-remove]");
+    if (remove) { draft.newDishes.splice(Number(remove.dataset.newRemove), 1); render(); return; }
+    if (edit) {
+      var id = edit.dataset.dishEdit;
+      if (ui.editDish === id) { ui.editDish = null; render(); return; }
+      var dish = effectiveDish(data.menu.dishes.find(function (x) { return x.id === id; }));
+      ui.editDish = id;
+      ui.editState = { days: dish.days.slice(), start: dish.start || data.menu.open_from, end: dish.end || data.menu.open_to, usingHours: !dish.start };
+      render(); return;
+    }
+    if (hours) {
+      ui.editState.usingHours = true; ui.editState.start = data.menu.open_from; ui.editState.end = data.menu.open_to;
+      render(); return;
+    }
+    if (cancel) { ui.editDish = null; render(); return; }
+    if (apply) {
+      var dishId = apply.dataset.dishApply;
+      var st = ui.editState;
+      var from = document.getElementById("dStart").value, to = document.getElementById("dEnd").value;
+      if (!st.days.length) { msg("dishMsg", "Choose at least one day."); return; }
+      if (!st.usingHours && (!from || !to || from >= to)) { msg("dishMsg", "The end time must be after the start time."); return; }
+      var current = effectiveDish(data.menu.dishes.find(function (x) { return x.id === dishId; }));
+      draft.dishes[dishId] = {
+        enabled: current.enabled, days: st.days.slice().sort(),
+        start: st.usingHours ? null : from, end: st.usingHours ? null : to
+      };
+      ui.editDish = null; render();
+    }
+  });
+  document.getElementById("dishRows").addEventListener("change", function (e) {
+    var t = e.target;
+    if (t.dataset.dishOn) {
+      var dish = data.menu.dishes.find(function (x) { return x.id === t.dataset.dishOn; });
+      var current = effectiveDish(dish);
+      draft.dishes[dish.id] = { enabled: t.checked, days: current.days, start: current.start, end: current.end };
+      render(); return;
+    }
+    if (t.dataset.day !== undefined && ui.editState) {
+      var n = Number(t.dataset.day);
+      ui.editState.days = t.checked ? ui.editState.days.concat([n]) : ui.editState.days.filter(function (x) { return x !== n; });
+    }
+    if (t.id === "dStart" && ui.editState) { ui.editState.start = t.value; ui.editState.usingHours = false; }
+    if (t.id === "dEnd" && ui.editState) { ui.editState.end = t.value; ui.editState.usingHours = false; }
+  });
+
+  // ---- default fields: the confirmed values only ----
+  function renderDefaults() {
+    var rows = data.knowledge.fields.filter(function (f) { return f.status !== "conflict"; });
+    document.getElementById("defRows").innerHTML = rows.map(function (f) {
+      var s = STATUS[f.status] || STATUS.chosen;
+      var value = effectiveValue(f), shared = effectiveShared(f), edit = ui.editKey === f.key;
+      var staged = !!draft.choices[f.key] || !!draft.share[f.key];
+      var line = '<tr data-key="' + f.key + '"><td class="name">' + D.esc(f.label) + "</td><td>" +
+        (value ? D.esc(value) : '<span class="sub">Not set</span>') + '</td><td><span class="pill ' + s[0] + '">' + s[1] + "</span>" +
+        (staged ? ' <span class="pill p-draft">Not saved</span>' : "") +
+        '</td><td><label class="switch"><input type="checkbox" data-share="' + f.key + '"' + (shared ? " checked" : "") +
+        '><span></span></label></td><td><button class="btn ghost small" data-edit="' + f.key + '" type="button">' +
+        (edit ? "Close" : "Edit") + "</button></td></tr>";
+      if (!edit) return line;
+      return line + '<tr class="edit-row"><td colspan="5"><div class="row" style="align-items:flex-end">' +
+        '<label class="field" style="flex:1">New value for ' + D.esc(f.label.toLowerCase()) + '<input type="text" id="manualVal" value="' + D.esc(value || "") + '"></label>' +
+        '<button class="btn small" data-save="' + f.key + '" type="button">Apply value</button>' +
+        '<button class="btn ghost small" data-cancel type="button">Cancel</button></div>' +
+        '<p class="msg-text hidden" id="fieldMsg"></p></td></tr>';
+    }).join("") || '<tr><td colspan="5" class="empty">No confirmed fields yet.</td></tr>';
+    var pending = data.knowledge.conflicts;
+    document.getElementById("defNote").textContent = pending
+      ? pending + " conflict(s) are waiting on the Get data from webpage tab. They are not shown here until they are resolved."
+      : "Only confirmed values are shown. Conflicts from a new web page check appear on the Get data from webpage tab.";
+  }
+  document.getElementById("defRows").addEventListener("click", function (e) {
+    var edit = e.target.closest("[data-edit]"), apply = e.target.closest("[data-save]"), cancel = e.target.closest("[data-cancel]");
+    if (edit) { ui.editKey = ui.editKey === edit.dataset.edit ? null : edit.dataset.edit; render(); return; }
+    if (cancel) { ui.editKey = null; render(); return; }
+    if (apply) {
+      var key = apply.dataset.save, value = document.getElementById("manualVal").value.trim();
+      if (!value) { msg("fieldMsg", "Type the value first."); return; }
+      draft.choices[key] = { source: "manual", manual: value };
+      ui.editKey = null; render();
+    }
+  });
+  document.getElementById("defRows").addEventListener("change", function (e) {
+    var t = e.target;
+    if (t.dataset.share) {
+      var f = data.knowledge.fields.find(function (x) { return x.key === t.dataset.share; });
+      if (t.checked === f.enabled) delete draft.share[f.key]; else draft.share[f.key] = { enabled: t.checked };
+      render();
+    }
+  });
+
+  // ---- custom fields: staged, saved with the Save button ----
+  function renderCustom() {
+    var saved = data.custom.fields, staged = draft.customs, total = saved.length + staged.length;
+    document.getElementById("cCount").textContent = total ? total + " custom field" + (total > 1 ? "s" : "") : "No custom fields yet.";
+    document.getElementById("customRows").innerHTML = saved.map(function (f) {
+      return '<tr><td class="name">' + D.esc(f.key) + "</td><td>" + D.esc(f.value) + '</td><td><span class="pill p-on">Saved</span></td></tr>';
+    }).concat(staged.map(function (f, i) {
+      return '<tr><td class="name">' + D.esc(f.key) + "</td><td>" + D.esc(f.value) + '</td><td><span class="pill p-draft">Not saved</span> ' +
+        '<button class="btn ghost small" data-custom-remove="' + i + '" type="button">Remove</button></td></tr>';
+    })).join("") || '<tr><td colspan="3" class="empty">Nothing saved yet.</td></tr>';
+  }
+  document.getElementById("cAdd").addEventListener("click", function () {
+    var key = document.getElementById("cKey").value.replace(/\s+/g, " ").trim();
+    var value = document.getElementById("cVal").value.trim();
+    if (key.length < 2) { msg("cMsg", "The name needs 2 to 40 letters or numbers."); return; }
+    if (!value) { msg("cMsg", "Write the value."); return; }
+    var predefined = data.knowledge.fields.find(function (f) { return normal(key) === normal(f.key) || normal(key) === normal(f.label); });
+    if (predefined) { msg("cMsg", '"' + key + '" is already a predefined field. Use "' + predefined.label + '" in Default fields instead.'); return; }
+    if (data.custom.fields.concat(draft.customs).some(function (f) { return f.key.toLowerCase() === key.toLowerCase(); })) {
+      msg("cMsg", '"' + key + '" is already saved. Use a different name.'); return;
+    }
+    draft.customs.push({ key: key, value: value });
+    msg("cMsg", "");
+    document.getElementById("cKey").value = ""; document.getElementById("cVal").value = "";
+    render();
+  });
+  document.getElementById("customRows").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-custom-remove]"); if (!b) return;
+    draft.customs.splice(Number(b.dataset.customRemove), 1); render();
+  });
+
+  // ---- the one Save for Knowledge ----
+  function renderSave() {
+    document.getElementById("saveBar").classList.toggle("hidden", KNOW.indexOf(ui.section) < 0);
+    var n = changeCount();
+    document.getElementById("saveCount").textContent = n ? n + " unsaved change" + (n > 1 ? "s" : "") : "No unsaved changes";
+    document.getElementById("saveAll").disabled = n === 0;
+    document.getElementById("discardAll").disabled = n === 0;
+  }
+  function saveDraft() {
+    var body = {
+      new_dishes: draft.newDishes, dishes: draft.dishes, choices: draft.choices, share: draft.share,
+      custom_fields: draft.customs, chef: draft.chef
+    };
+    return call("PUT", "/knowledge-batch", body).then(function (r) {
+      draft = emptyDraft();
+      var banner = document.getElementById("dbBanner");
+      if (r.database_differs.length) {
+        banner.innerHTML = "The database has a different value for " + D.esc(r.database_differs.join(", ")) +
+          ". Update the database with your value too? " +
+          '<button class="btn small" id="confirmDb" type="button" style="margin-left:8px">Yes, update the database</button>';
+        banner.classList.remove("hidden");
+        document.getElementById("confirmDb").addEventListener("click", function () {
+          banner.classList.add("hidden"); D.toast("Database update requested (demo: not written yet)");
+        });
+      } else {
+        banner.classList.add("hidden");
+      }
+      D.toast("Saved. " + r.changes + " change(s) recorded.");
+      return refresh();
+    });
+  }
+  function discardDraft() { draft = emptyDraft(); ui.editDish = null; ui.editKey = null; render(); }
+  document.getElementById("saveAll").addEventListener("click", function () {
+    msg("saveMsg", "");
+    saveDraft().catch(function (err) { msg("saveMsg", err.message); });
+  });
+  document.getElementById("discardAll").addEventListener("click", discardDraft);
+  D.setGuard({ dirty: dirty, save: saveDraft, discard: discardDraft });
+
+  // ---- recent changes (from dashboard_changes) ----
+  function renderChanges() {
+    document.getElementById("changeRows").innerHTML = data.changes.map(function (c) {
+      return "<tr><td class=\"meta\">" + D.when(c.at) + "</td><td>" + D.esc(c.who) + '</td><td><span class="tag">' +
+        D.esc(PAGE_NAME[c.page] || c.page) + "</span></td><td>" + D.esc(c.summary) + "</td></tr>";
+    }).join("") || '<tr><td colspan="4" class="empty">No changes yet.</td></tr>';
+  }
+
+  // ---- playground: the widget's chat, with the same teaser, quick questions and answers ----
+  function renderPlay() {
+    var s = data.style.domains[ui.current] || data.style.defaults;
+    var box = document.getElementById("pChat");
+    box.style.setProperty("--wp", s.primary);
+    box.style.setProperty("--fs", s.font_size + "px");
+    box.style.setProperty("--ff", "'" + s.font_family + "'");
+    document.getElementById("pName").textContent = data.widget.title;
+    if (!play.started) {
+      play.started = true;
+      play.quick = data.widget.default_questions.slice();
+      play.msgs.push({ who: "bot", text: data.widget.teaser });
+    }
+    drawPlay();
+    document.getElementById("pFactsHint").textContent = data.facts.length + " facts: confirmed values shared with the chatbot, enabled dishes and custom fields." +
+      (play.source ? " Last answer: " + play.source + "." : "");
+    document.getElementById("pFacts").innerHTML = data.facts.map(function (f) {
+      return '<div class="fact-row"><b>' + D.esc(f.label) + "</b><span>" + D.esc(f.value) + "</span></div>";
+    }).join("") || '<p class="empty">Nothing is shared with the chatbot yet.</p>';
+  }
+  // A reply may hold **bold** labels and line breaks.
+  function richText(text) {
+    return D.esc(text).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\n/g, "<br>");
+  }
+  function drawPlay() {
+    var box = document.getElementById("pMsgs");
+    box.innerHTML = play.msgs.map(function (m, i) {
+      var html = '<div class="pm ' + m.who + '">' + (m.who === "bot" ? richText(m.text) : D.esc(m.text)) + "</div>";
+      if (m.offer) html += '<div class="poffer"><button class="btn small" type="button" data-choice="yes" data-i="' + i + '">Yes</button>' +
+        '<button class="btn ghost small" type="button" data-choice="no" data-i="' + i + '">No</button></div>';
+      return html;
+    }).join("") + (play.busy ? '<div class="pm bot ptyping" aria-label="Assistant is typing"><span></span><span></span><span></span></div>' : "");
+    box.scrollTop = box.scrollHeight;
+    var chips = document.getElementById("pChips");
+    var list = play.busy ? [] : play.quick || [];
+    chips.style.gridTemplateColumns = "repeat(" + (list.length === 4 ? 2 : 3) + ", minmax(0, 1fr))";
+    chips.innerHTML = list.map(function (q) { return '<button type="button" data-q="' + D.esc(q) + '">' + D.esc(q) + "</button>"; }).join("");
+  }
+  function askPlay(text) {
+    if (play.busy || !text) return;
+    play.busy = true;
+    play.msgs.push({ who: "visitor", text: text });
+    drawPlay();
+    document.getElementById("pSend").disabled = true;
+    call("POST", "/playground", { message: text }).then(function (r) {
+      play.msgs.push({ who: "bot", text: r.answer, offer: !!r.offer });
+      play.source = r.source === "model" ? "by the model, from " + r.facts_used.length + " saved facts"
+        : r.source === "facts" ? "from the saved facts (quick question)" : "keyword match on the saved facts (no model key)";
+      // as the widget does: the quick questions are the defaults, without the one just asked
+      play.quick = data.widget.default_questions.filter(function (q) { return q !== text; });
+    }).catch(function (err) {
+      play.msgs.push({ who: "bot", text: err.message });
+    }).then(function () {
+      play.busy = false; document.getElementById("pSend").disabled = false; renderPlay();
+    });
+  }
+  document.getElementById("pForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var input = document.getElementById("pInput"), text = input.value.trim();
+    if (!text) return;
+    input.value = "";
+    askPlay(text);
+  });
+  // Yes or No after a reply the chatbot could not answer.
+  document.getElementById("pMsgs").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-choice]"); if (!b || play.busy) return;
+    var m = play.msgs[Number(b.dataset.i)];
+    if (!m) return;
+    m.offer = false;
+    var yes = b.dataset.choice === "yes";
+    play.msgs.push({ who: "visitor", text: yes ? "Yes" : "No" });
+    play.msgs.push({ who: "bot", text: yes
+      ? "Thank you. Please share your name and an email or phone number, and " + data.widget.title + " will get back to you."
+      : "No problem. What else can I help you with?" });
+    renderPlay();
+  });
+  document.getElementById("pChips").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-q]"); if (b) askPlay(b.dataset.q);
+  });
+  document.getElementById("playClear").addEventListener("click", function () {
+    play.msgs = []; play.started = false; play.quick = null; play.source = ""; renderPlay();
+  });
+
+  function render() {
+    var subscribed = data.sub.subscribed;
+    document.getElementById("subscribe").classList.toggle("hidden", subscribed);
+    document.getElementById("app").classList.toggle("hidden", !subscribed);
+    if (!subscribed) { document.getElementById("plan").value = data.sub.plan; return; }
+    renderSide(); renderWidget(); renderDomains(); fillSelects(); renderStyleDomains();
+    renderGet(); renderMenu(); renderDefaults(); renderCustom(); renderSave(); renderChanges(); renderPlay();
+    var show = { domains: "pDomains", get: "pGet", menu: "pMenu", defaults: "pDefaults", custom: "pCustom", changes: "pChanges", playground: "pPlay" };
+    Object.keys(show).forEach(function (s) {
+      document.getElementById(show[s]).classList.toggle("hidden", s !== ui.section);
+    });
+    renderConflictPop();
+  }
+
+  // ---- conflicts pop-up: resolve each conflict right here; each choice is saved when it is confirmed ----
+  function conflictOptions(f, source, manual) {
+    var opts = [];
+    if (f.database) opts.push(["database", "Use the database value: " + f.database]);
+    if (f.scraped) opts.push(["scraped", "Use the web page value: " + f.scraped]);
+    opts.push(["manual", "Enter it by hand"]);
+    return '<div class="pick">' + opts.map(function (o) {
+      return '<label><input type="radio" name="cp-' + f.key + '" value="' + o[0] + '"' + (source === o[0] ? " checked" : "") + "> " + D.esc(o[1]) + "</label>";
+    }).join("") + "</div>" +
+      '<input class="input' + (source === "manual" ? "" : " hidden") + '" type="text" data-cpm="' + f.key + '" value="' + D.esc(manual || "") +
+      '" placeholder="Type the ' + D.esc(f.label.toLowerCase()) + '" style="margin-top:8px">';
+  }
+  function renderConflictPop() {
+    var pop = document.getElementById("conflictPop");
+    var rows = data.knowledge.fields.filter(function (f) { return f.status === "conflict"; });
+    if (!data.sub.subscribed || !rows.length) { pop.classList.remove("open"); return; }
+    if (!ui.popupShown) { ui.popupShown = true; pop.classList.add("open"); }
+    if (!pop.classList.contains("open")) return;
+    document.getElementById("cpTitle").textContent = rows.length + " conflict" + (rows.length > 1 ? "s" : "") + " to resolve";
+    document.getElementById("cpHint").textContent = "The web page and the database disagree about these fields. Choose the value to use and press Confirm. " +
+      "The choice is saved straight away. Until then the chatbot keeps using the value you confirmed before.";
+    document.getElementById("cpList").innerHTML = rows.map(function (f) {
+      var staged = draft.choices[f.key];
+      return '<div class="cp-item" data-key="' + f.key + '"><div class="row spread"><div style="font-weight:700">' + D.esc(f.label) + "</div>" +
+        '<span class="pill p-warn">' + (f.value ? "Using: " + D.esc(f.value) : "Not used yet") + "</span></div>" +
+        conflictOptions(f, staged ? staged.source : f.source, staged ? staged.manual : f.manual) +
+        '<div class="row" style="margin-top:10px"><button class="btn small" data-cp="' + f.key + '" type="button">Confirm</button></div></div>';
+    }).join("");
+  }
+  document.getElementById("cpList").addEventListener("change", function (e) {
+    if (e.target.type !== "radio") return;
+    var key = e.target.name.slice(3);
+    document.querySelector('#cpList [data-cpm="' + key + '"]').classList.toggle("hidden", e.target.value !== "manual");
+  });
+  document.getElementById("cpList").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-cp]"); if (!b) return;
+    var key = b.dataset.cp;
+    var pick = document.querySelector('#cpList input[name="cp-' + key + '"]:checked');
+    if (!pick) { D.toast("Choose a value first"); return; }
+    var manual = document.querySelector('#cpList [data-cpm="' + key + '"]').value.trim();
+    if (pick.value === "manual" && !manual) { D.toast("Type the value first"); return; }
+    var label = data.knowledge.fields.find(function (f) { return f.key === key; }).label;
+    b.disabled = true;
+    call("PUT", "/knowledge/" + encodeURIComponent(key) + "/choice", { source: pick.value, manual: pick.value === "manual" ? manual : null })
+      .then(function () {
+        D.toast(label + ": confirmed");
+        return refresh();
+      }).catch(function (err) { b.disabled = false; D.toast(err.message); });
+  });
+  document.getElementById("cpClose").addEventListener("click", function () {
+    document.getElementById("conflictPop").classList.remove("open");
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") document.getElementById("conflictPop").classList.remove("open");
+  });
+
+  refresh().then(applyHash);
+})();
+</script>
+</body>
+</html>
