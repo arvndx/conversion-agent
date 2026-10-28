@@ -1,0 +1,1329 @@
+{
+  "tools": [
+    {
+      "name": "get_business_info",
+      "description": "Read a fact or link the business has on record, for example opening hours, phone, email, address, service area, services, parking, offers, or a link such as booking_link or menu_link. Use it before saying something is not on record. If it returns found false, say it is not on record and offer to pass the question on. Never guess.",
+      "inputs": {
+        "type": "object",
+        "required": [
+          "field"
+        ],
+        "properties": {
+          "field": {
+            "type": "string",
+            "description": "The fact to read. The allowed names are filled in from the business's data when the chat starts."
+          }
+        }
+      }
+    },
+    {
+      "name": "request_handoff",
+      "description": "Open a request form for the visitor and pass the request to the business when they submit it. Use it when the visitor wants to book, schedule, request something, get a quote or talk to a person, and when the information they want is not on record. Give the action_key of what they want (direct_handover when none fits). The form asks for the details, so do not ask the visitor for them. Put in prefill only what the visitor already said in this chat. After you call it the visitor sees the form and you write nothing more. Never say a request was sent or booked: the visitor sends it by submitting the form.",
+      "inputs": {
+        "type": "object",
+        "required": [
+          "action_key"
+        ],
+        "properties": {
+          "action_key": {
+            "type": "string",
+            "description": "The action the visitor wants, or direct_handover when none fits."
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "visitor_asked",
+              "not_on_record",
+              "unsure"
+            ],
+            "description": "Why: visitor_asked (they asked for it or for a person), not_on_record (the answer is not on record), unsure (the question is unclear)."
+          },
+          "prefill": {
+            "type": "object",
+            "description": "Only values the visitor already gave in this chat. Leave out anything they did not say.",
+            "properties": {
+              "name": {
+                "type": "string",
+                "title": "Your name",
+                "format": "name",
+                "maxLength": 60,
+                "description": "So the business knows who to contact."
+              },
+              "phone": {
+                "type": "string",
+                "title": "Phone number",
+                "format": "phone",
+                "maxLength": 20,
+                "description": "So the business can call you. Give a phone number or an email."
+              },
+              "email": {
+                "type": "string",
+                "title": "Email",
+                "format": "email",
+                "maxLength": 120,
+                "description": "So the business can write to you. Give a phone number or an email."
+              },
+              "question": {
+                "type": "string",
+                "title": "Your request",
+                "format": "text",
+                "maxLength": 500,
+                "description": "What you would like, in your own words.",
+                "minLength": 3
+              },
+              "date": {
+                "type": "string",
+                "title": "Preferred date",
+                "format": "date",
+                "description": "The day you would like, as a date."
+              },
+              "time": {
+                "type": "string",
+                "title": "Preferred time",
+                "format": "time",
+                "description": "The time you would like, as hours and minutes."
+              },
+              "note": {
+                "type": "string",
+                "title": "Anything else",
+                "format": "text",
+                "maxLength": 300,
+                "description": "Anything else the business should know."
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "actions": {
+    "gcid:mortgage_broker": {
+      "schedule_consultation": {
+        "goal": "Help the visitor request a consultation with the broker. Open the request form; the broker contacts the visitor to arrange the time. Do not offer or confirm any time.",
+        "request_type": "appointment booking",
+        "steps": [
+          {
+            "route": "booking",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          },
+          {
+            "route": "details",
+            "tools": [
+              "get_business_info"
+            ],
+            "provides": [
+              "booking_link"
+            ]
+          },
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      "get_prequalified": {
+        "goal": "Do not assess eligibility, credit, income or amounts. Open the request form so the visitor can leave their name, a phone or email, and what they want to know; it goes to the broker.",
+        "request_type": "direct handover",
+        "steps": [
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      "request_rate_quote": {
+        "goal": "Do not quote or estimate any rate. Open the request form so the visitor can leave their name, a phone or email, and the loan question; it goes to the broker, who gives the quote.",
+        "request_type": "direct handover",
+        "steps": [
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      "contact_broker": {
+        "goal": "The visitor wants to talk to the broker. Open the request form so they can leave their name, a phone or email, and what it is about.",
+        "request_type": "direct handover",
+        "steps": [
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      "subscribe_rate_updates": {
+        "goal": "Give the sign-up link for rate alerts. If there is none, open the request form so the visitor can leave their name and a phone or email for the broker.",
+        "request_type": "business detail handover",
+        "steps": [
+          {
+            "route": "details",
+            "tools": [
+              "get_business_info"
+            ],
+            "provides": [
+              "subscribe_link"
+            ]
+          },
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "gcid:mortgage_lender": {
+      "apply_for_heloc": {
+        "goal": "Give the business's application link for a home equity line of credit. Do not assess eligibility or equity. If there is no link, open the request form so the visitor can leave their name and a phone or email.",
+        "request_type": "business detail handover",
+        "steps": [
+          {
+            "route": "details",
+            "tools": [
+              "get_business_info"
+            ],
+            "provides": [
+              "apply_link"
+            ]
+          },
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      "get_preapproved": {
+        "request_type": "pre-approval request",
+        "enabled": false,
+        "steps": [
+          {
+            "route": "booking",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          },
+          {
+            "route": "details",
+            "tools": [
+              "get_business_info"
+            ],
+            "provides": [
+              "apply_link"
+            ]
+          },
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      "refinance_savings_check": {
+        "goal": "Share the refinance information link if the business has one. Do not calculate or estimate savings. If there is none, open the request form so the visitor can leave their name and a phone or email.",
+        "request_type": "business detail handover",
+        "steps": [
+          {
+            "route": "details",
+            "tools": [
+              "get_business_info"
+            ],
+            "provides": [
+              "info_link"
+            ]
+          },
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      "request_rate_quote": {
+        "goal": "Do not quote or estimate any rate. Open the request form so the visitor can leave their name, a phone or email, and the loan question; it goes to the loan officer, who gives the quote.",
+        "request_type": "direct handover",
+        "steps": [
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      "schedule_loan_consultation": {
+        "goal": "Help the visitor request a consultation with the loan officer. Open the request form; the loan officer contacts the visitor to arrange the time. Do not offer or confirm any time.",
+        "request_type": "appointment booking",
+        "steps": [
+          {
+            "route": "booking",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          },
+          {
+            "route": "details",
+            "tools": [
+              "get_business_info"
+            ],
+            "provides": [
+              "booking_link"
+            ]
+          },
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      "track_loan_status": {
+        "goal": "Give the link where applicants can follow their loan. Do not look up or state any loan status. If there is no link, open the request form so the visitor can leave their name and a phone or email.",
+        "request_type": "business detail handover",
+        "steps": [
+          {
+            "route": "details",
+            "tools": [
+              "get_business_info"
+            ],
+            "provides": [
+              "status_link"
+            ]
+          },
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "gcid:health_insurance_agency": {
+      "agent_newsletter_signup": {
+        "goal": "Give the sign-up link for the agent's newsletter. If there is none, open the request form so the visitor can leave their name and a phone or email for the agent.",
+        "request_type": "business detail handover",
+        "steps": [
+          {
+            "route": "details",
+            "tools": [
+              "get_business_info"
+            ],
+            "provides": [
+              "subscribe_link"
+            ]
+          },
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      "book_consultation_with_this_agent": {
+        "goal": "Help the visitor request a consultation with the agent. Open the request form; the agent contacts the visitor to arrange the time. Do not offer or confirm any time.",
+        "request_type": "appointment booking",
+        "steps": [
+          {
+            "route": "booking",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          },
+          {
+            "route": "details",
+            "tools": [
+              "get_business_info"
+            ],
+            "provides": [
+              "booking_link"
+            ]
+          },
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      "call_this_agent_directly": {
+        "goal": "The visitor wants to speak to the agent. Open the request form so they can leave their name, a phone or email, and what it is about; the agent calls them.",
+        "request_type": "direct handover",
+        "steps": [
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      "email_this_agent": {
+        "goal": "The visitor wants to email the agent. Open the request form so they can leave their name, a phone or email, and their message.",
+        "request_type": "direct handover",
+        "steps": [
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      "request_quote_from_this_agent": {
+        "goal": "Do not quote or estimate any premium or plan price. Open the request form so the visitor can leave their name, a phone or email, and what cover they are asking about; it goes to the agent, who gives the quote.",
+        "request_type": "direct handover",
+        "steps": [
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "gcid:commercial_real_estate_agency": {
+      "contact_for_investment_analysis": {
+        "goal": "Do not give any opinion on value, returns or investment advice. Open the request form so the visitor can leave their name, a phone or email, and what they want analysed; it goes to the agent.",
+        "request_type": "direct handover",
+        "steps": [
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      "request_property_listing_tour": {
+        "goal": "Help the visitor request a property tour. Open the request form; the agent contacts the visitor to arrange the time. Do not offer or confirm any time.",
+        "request_type": "property tour booking",
+        "steps": [
+          {
+            "route": "booking",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          },
+          {
+            "route": "details",
+            "tools": [
+              "get_business_info"
+            ],
+            "provides": [
+              "booking_link"
+            ]
+          },
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      "schedule_market_consultation": {
+        "goal": "Help the visitor request a market consultation with the agent. Open the request form; the agent contacts the visitor to arrange the time. Do not offer or confirm any time.",
+        "request_type": "appointment booking",
+        "steps": [
+          {
+            "route": "booking",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          },
+          {
+            "route": "details",
+            "tools": [
+              "get_business_info"
+            ],
+            "provides": [
+              "booking_link"
+            ]
+          },
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      "submit_property_for_listing": {
+        "goal": "The owner wants to list a property. Open the request form so they can leave their name, a phone or email, and a short description of the property.",
+        "request_type": "direct handover",
+        "steps": [
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      "subscribe_market_reports": {
+        "goal": "Give the sign-up link for market reports. If there is none, open the request form so the visitor can leave their name and a phone or email for the agent.",
+        "request_type": "business detail handover",
+        "steps": [
+          {
+            "route": "details",
+            "tools": [
+              "get_business_info"
+            ],
+            "provides": [
+              "subscribe_link"
+            ]
+          },
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      "view_available_listings": {
+        "goal": "Share the link to the available listings if the business has one. If there is none, offer to pass the question to the agent.",
+        "request_type": "business detail handover",
+        "steps": [
+          {
+            "route": "details",
+            "tools": [
+              "get_business_info"
+            ],
+            "provides": [
+              "listings_link"
+            ]
+          },
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "gcid:american_restaurant": {
+      "book_reservation": {
+        "goal": "Help the visitor request a table. Open the request form; the restaurant contacts the visitor to confirm. Do not confirm a table, a day or a time.",
+        "request_type": "table booking",
+        "steps": [
+          {
+            "route": "booking",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          },
+          {
+            "route": "details",
+            "tools": [
+              "get_business_info"
+            ],
+            "provides": [
+              "booking_link"
+            ]
+          },
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      "happy_hour_details": {
+        "goal": "Tell the visitor about happy hour from what the business has on record. If nothing is on record, offer to pass the question on.",
+        "request_type": "business detail handover",
+        "steps": [
+          {
+            "route": "details",
+            "tools": [
+              "get_business_info"
+            ],
+            "provides": [
+              "offers"
+            ]
+          },
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      "inquire_catering": {
+        "goal": "The visitor wants catering or a private event. Open the request form so they can leave their name, a phone or email, and the event details; it goes to the restaurant.",
+        "request_type": "direct handover",
+        "steps": [
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      "order_takeout": {
+        "goal": "Help the visitor order takeout by giving the restaurant's order link. If there is none, open the request form so the visitor can leave their name and a phone or email.",
+        "request_type": "business detail handover",
+        "steps": [
+          {
+            "route": "details",
+            "tools": [
+              "get_business_info"
+            ],
+            "provides": [
+              "order_link"
+            ]
+          },
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      "subscribe_offers": {
+        "goal": "Give the sign-up link for offers and deals. If there is none, open the request form so the visitor can leave their name and a phone or email for the restaurant.",
+        "request_type": "business detail handover",
+        "steps": [
+          {
+            "route": "details",
+            "tools": [
+              "get_business_info"
+            ],
+            "provides": [
+              "subscribe_link"
+            ]
+          },
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      "view_menu": {
+        "goal": "Show the menu by giving the menu link. If there is none, offer to pass the question on.",
+        "request_type": "business detail handover",
+        "steps": [
+          {
+            "route": "details",
+            "tools": [
+              "get_business_info"
+            ],
+            "provides": [
+              "menu_link"
+            ]
+          },
+          {
+            "route": "handover",
+            "tools": [
+              "request_handoff"
+            ],
+            "collect": [
+              {
+                "key": "name",
+                "required": true
+              },
+              {
+                "any_of": [
+                  "phone",
+                  "email"
+                ]
+              },
+              {
+                "key": "question",
+                "required": true
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "general_actions": {
+    "critical_handover": {
+      "action_name": "Critical question",
+      "request_type": "critical handover",
+      "goal": "The visitor asked something the business must answer itself (a critical topic). Collect the visitor's name, a phone or email, and the question, then pass it to the business.",
+      "steps": [
+        {
+          "route": "handover",
+          "tools": [
+            "request_handoff"
+          ],
+          "collect": [
+            {
+              "key": "name",
+              "required": true
+            },
+            {
+              "any_of": [
+                "phone",
+                "email"
+              ]
+            },
+            {
+              "key": "question",
+              "required": true
+            }
+          ]
+        }
+      ]
+    },
+    "ai_down_handover": {
+      "action_name": "Chat assistant unavailable",
+      "request_type": "ai down handover",
+      "goal": "The chat assistant could not answer because it was unavailable. Collect the visitor's name, a phone or email, and what they wanted, then pass it to the business.",
+      "steps": [
+        {
+          "route": "handover",
+          "tools": [
+            "request_handoff"
+          ],
+          "collect": [
+            {
+              "key": "name",
+              "required": true
+            },
+            {
+              "any_of": [
+                "phone",
+                "email"
+              ]
+            },
+            {
+              "key": "question",
+              "required": true
+            }
+          ]
+        }
+      ]
+    },
+    "fallback_handover": {
+      "action_name": "Could not answer",
+      "request_type": "fallback handover",
+      "goal": "The assistant could not give a reliable answer. Collect the visitor's name, a phone or email, and the question, then pass it to the business.",
+      "steps": [
+        {
+          "route": "handover",
+          "tools": [
+            "request_handoff"
+          ],
+          "collect": [
+            {
+              "key": "name",
+              "required": true
+            },
+            {
+              "any_of": [
+                "phone",
+                "email"
+              ]
+            },
+            {
+              "key": "question",
+              "required": true
+            }
+          ]
+        }
+      ]
+    },
+    "direct_handover": {
+      "action_name": "Talk to the business",
+      "request_type": "direct handover",
+      "goal": "The visitor asked to speak to the business, or the information is not on record. Collect the visitor's name, a phone or email, and the question, then pass it to the business.",
+      "steps": [
+        {
+          "route": "handover",
+          "tools": [
+            "request_handoff"
+          ],
+          "collect": [
+            {
+              "key": "name",
+              "required": true
+            },
+            {
+              "any_of": [
+                "phone",
+                "email"
+              ]
+            },
+            {
+              "key": "question",
+              "required": true
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

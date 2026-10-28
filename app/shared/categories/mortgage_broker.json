@@ -1,0 +1,226 @@
+{
+  "id": "28d55920-3a13-47a3-b5af-3de163e4fb66",
+  "gcid": "gcid:mortgage_broker",
+  "entity_type": "location",
+  "pricing_tier": "professional",
+  "status": "pending",
+  "exclusion_reason": null,
+  "terminology": null,
+  "services": [
+    "FHA purchase loans",
+    "VA loans for veterans",
+    "conventional purchase loans",
+    "jumbo loans",
+    "refinance rate and term",
+    "cash-out refinance",
+    "USDA rural loans",
+    "HELOC",
+    "construction loans",
+    "down payment assistance programs",
+    "reverse mortgage",
+    "pre-approval letters"
+  ],
+  "compliance_rules": [
+    "NMLS license required — display on all advertising and communications",
+    "Equal Housing Lender disclosure required on all marketing materials",
+    "RESPA prohibits kickbacks and referral fees",
+    "TILA requires full APR disclosure on any rate advertising",
+    "TRID requires loan estimate within 3 business days of application",
+    "State-specific licensing required in each state where loans are originated",
+    "Regulation Z governs advertising of credit terms"
+  ],
+  "customer_journey": [
+    "awareness: buyer begins researching home purchase or refinance options",
+    "consideration: buyer compares loan officers, rates, and lender reviews",
+    "pre-approval: loan officer collects documents and issues pre-approval letter",
+    "processing: underwriting, appraisal, title search, and final approval",
+    "closing: signing, funding, and key handoff"
+  ],
+  "ranking_factors": [
+    "Google Business Profile with NMLS number in description",
+    "review volume and recency on GBP and Zillow Mortgage",
+    "NMLS Consumer Access listing accuracy",
+    "hyper-local content targeting specific city and neighborhood markets",
+    "schema markup with Person type, hasCredential, and areaServed",
+    "citations in mortgage-specific directories and real estate platforms"
+  ],
+  "review_vocabulary": null,
+  "content_topics": null,
+  "expertise_signals": [
+    "NMLS license — verified on Consumer Access",
+    "years of origination experience",
+    "FHA and VA approved lender status",
+    "Certified Mortgage Banker (CMB) designation",
+    "closed loan volume in specific markets"
+  ],
+  "scoring_weights": null,
+  "ai_agents": {
+    "sdr_tone": "professional",
+    "key_directories": [
+      "Google Business Profile",
+      "NMLS Consumer Access",
+      "Zillow Mortgage",
+      "Bankrate",
+      "LendingTree",
+      "LinkedIn",
+      "Yelp"
+    ],
+    "estimated_profiles": 500000,
+    "top_content_topics": [
+      "first-time homebuyer financing in [city]",
+      "FHA vs conventional loan comparison",
+      "mortgage rate update for [city] market"
+    ],
+    "review_response_style": "Warm and personal — reference the specific transaction type and thank by name",
+    "compliance_restrictions": "Never mention specific rates without full APR disclosure. Never guarantee approval. Always include NMLS ID in any regulated communication."
+  },
+  "knowledge_pct": 0,
+  "is_launched": false,
+  "created_at": "2026-07-25T22:47:58.456471+00:00",
+  "updated_at": "2026-07-25T22:47:58.456471+00:00",
+  "value_props": [
+    {
+      "lane": "location",
+      "text": "A whole team of licensed brokers shopping the wholesale market for you"
+    },
+    {
+      "lane": "location",
+      "text": "Local office with in-person consultations for complex files"
+    },
+    {
+      "lane": "location",
+      "text": "Wholesale lender panel breadth: more programs, more approvals, better pricing"
+    },
+    {
+      "lane": "location",
+      "text": "Processing and coordination under one roof for on-time closings"
+    },
+    {
+      "lane": "location",
+      "text": "Independent of any single bank: our office answers to your file, not a lender's pipeline"
+    }
+  ],
+  "search_intents": [
+    {
+      "lane": "location",
+      "query": "mortgage broker office {city}"
+    },
+    {
+      "lane": "location",
+      "query": "mortgage company near me"
+    },
+    {
+      "lane": "location",
+      "query": "mortgage brokerage {city} reviews"
+    },
+    {
+      "lane": "location",
+      "query": "home loan office open saturday {city}"
+    },
+    {
+      "lane": "location",
+      "query": "independent mortgage broker {city}"
+    },
+    {
+      "lane": "location",
+      "query": "best mortgage company near me reviews"
+    }
+  ],
+  "conversion_actions": [
+    {
+      "key": "visit_office",
+      "lane": "location",
+      "label": "Visit our office",
+      "schema_action": "ViewAction",
+      "profile_button": "Get Directions"
+    },
+    {
+      "key": "contact_office",
+      "lane": "location",
+      "label": "Contact the office",
+      "schema_action": "CommunicateAction",
+      "profile_button": "Call or Message"
+    },
+    {
+      "key": "find_a_broker",
+      "lane": "location",
+      "label": "Find a broker",
+      "schema_action": "CommunicateAction",
+      "profile_button": "Find My Broker"
+    },
+    {
+      "key": "office_prequalification",
+      "lane": "location",
+      "label": "Start a pre-qualification with our team",
+      "schema_action": "RegisterAction",
+      "profile_button": "Start Pre-Qual"
+    }
+  ],
+  "_compliance": {
+    "gcid": "gcid:mortgage_broker",
+    "display_license_on_profile": true,
+    "display_license_on_content": true,
+    "display_license_on_ads": true,
+    "display_license_on_email": true,
+    "license_display_format": "NMLS # [number]",
+    "license_label": "NMLS #",
+    "required_disclaimers": [
+      "NMLS # [number] displayed on all advertising, websites, and business cards per SAFE Act",
+      "Equal Housing Lender or Equal Housing Opportunity logo required on all marketing materials",
+      "Rates and terms subject to change without notice; not a commitment to lend",
+      "Not all applicants will qualify; approval subject to underwriting",
+      "This is not a commitment to make a mortgage loan; subject to property appraisal and title",
+      "Reverse mortgage: borrowers must be 62+, maintain property, pay taxes and insurance; loan becomes due on sale or vacancy",
+      "APR and payment examples must reflect actual costs per Regulation Z / TRID",
+      "State licensing disclosure required in all states where originating loans",
+      "Affiliated business arrangement disclosure required under RESPA Section 8 where applicable",
+      "HMDA data collected and reported annually as required by federal law"
+    ],
+    "disclaimer_placement": null,
+    "content_restrictions": [
+      "All rate and payment advertising must comply with Regulation Z (Truth in Lending Act) triggering terms",
+      "UDAP (Unfair, Deceptive, or Abusive Acts or Practices) prohibition under CFPB authority",
+      "RESPA Section 8 prohibits kickbacks or unearned fees in settlement service referral arrangements",
+      "CAN-SPAM and TCPA compliance required for email and SMS marketing",
+      "Fair Housing Act prohibits steering or discriminatory marketing targeting",
+      "State-specific mortgage advertising disclosure laws may impose additional labeling requirements",
+      "Social media advertising must include NMLS ID and Equal Housing Lender disclosure",
+      "Testimonials and endorsements must comply with FTC Endorsement Guides (16 CFR Part 255)"
+    ],
+    "prohibited_phrases": [
+      "guaranteed approval",
+      "guaranteed lowest rate",
+      "we will match any rate guaranteed",
+      "no income verification required",
+      "all credit accepted",
+      "pre-approved regardless of credit",
+      "better than any bank guaranteed",
+      "zero closing costs guaranteed",
+      "rates as low as [X]% for all borrowers",
+      "instant mortgage approval"
+    ],
+    "required_disclosures": null,
+    "age_gate_required": false,
+    "age_gate_minimum": 18,
+    "age_gate_type": null,
+    "hipaa_applies": false,
+    "coppa_applies": false,
+    "glba_applies": true,
+    "ferpa_applies": false,
+    "regulated_by": [
+      "Consumer Financial Protection Bureau (CFPB)",
+      "Nationwide Multistate Licensing System & Registry (NMLS)",
+      "State Department of Financial Institutions / Division of Banking (jurisdiction-specific)",
+      "U.S. Department of Housing and Urban Development (HUD) — for FHA and HECM",
+      "U.S. Department of Veterans Affairs (VA) — for VA loan approval",
+      "USDA Rural Development — for USDA loan approval",
+      "Federal Trade Commission (FTC) — advertising and unfair practices"
+    ],
+    "advertising_rules_url": null,
+    "compliance_notes": null,
+    "review_verification_required": false,
+    "review_transaction_required": false,
+    "created_at": "2026-06-28T17:36:42.466362+00:00",
+    "updated_at": "2026-07-06T03:08:58.141628+00:00"
+  }
+}

@@ -1,0 +1,259 @@
+{
+  "id": "de1f8fef-3ced-4d5d-88c4-edf52b561fb9",
+  "gcid": "gcid:commercial_real_estate_agency",
+  "entity_type": "location",
+  "pricing_tier": "location",
+  "status": "pending",
+  "exclusion_reason": null,
+  "terminology": null,
+  "services": [
+    "office space leasing and sales",
+    "retail space leasing and tenant mix advisory",
+    "industrial and warehouse property transactions",
+    "multifamily investment property sales",
+    "commercial property management services",
+    "investment portfolio acquisition and disposition",
+    "market research and commercial real estate analytics",
+    "site selection and feasibility analysis",
+    "commercial mortgage and financing referrals",
+    "development land brokerage"
+  ],
+  "compliance_rules": [
+    "State real estate broker license required for all transacting agents",
+    "Mandatory disclosure of material facts and conflicts of interest",
+    "Compliance with the Bank Secrecy Act and FinCEN beneficial ownership reporting",
+    "Americans with Disabilities Act compliance advisement for commercial properties",
+    "Environmental due diligence disclosures including Phase I and Phase II requirements",
+    "RESPA compliance where applicable in mixed-use transactions",
+    "Equal Credit Opportunity Act considerations in financing referrals"
+  ],
+  "customer_journey": [
+    "Awareness: investor or business identifies a commercial real estate need or opportunity",
+    "Research: prospect evaluates agency track record, market coverage, and agent specializations",
+    "Consultation: prospect engages agency for a market analysis or property tour",
+    "Transaction: agency manages listing, marketing, negotiations, and due diligence",
+    "Ongoing Advisory: agency provides post-close asset management or future transaction support"
+  ],
+  "ranking_factors": [
+    "Google Business Profile with complete service categories, team bios, and transaction highlights",
+    "Review volume from verified clients discussing deal outcomes and agent expertise",
+    "Listings active on LoopNet, CoStar, and Crexi with consistent NAP data",
+    "Market report content and local commercial real estate blog authority",
+    "LocalBusiness and RealEstateAgent schema markup on agency website",
+    "Inbound links from local business journals, economic development organizations, and industry associations"
+  ],
+  "review_vocabulary": null,
+  "content_topics": null,
+  "expertise_signals": [
+    "CCIM (Certified Commercial Investment Member) designation held by agency principals",
+    "SIOR membership for industrial and office specialists",
+    "State commercial real estate broker license in all operating markets",
+    "NAIOP (Commercial Real Estate Development Association) membership",
+    "Published annual or quarterly local market reports",
+    "Verified transaction volume rankings in CoStar or local business journal lists"
+  ],
+  "scoring_weights": null,
+  "ai_agents": {
+    "sdr_tone": "professional",
+    "key_directories": [
+      "Google Business Profile",
+      "LoopNet",
+      "CoStar",
+      "Crexi",
+      "CCIM Institute Directory",
+      "NAIOP member directory",
+      "LinkedIn Business",
+      "Local Chamber of Commerce directory"
+    ],
+    "top_content_topics": [
+      "Local commercial real estate market report for the current quarter",
+      "How to evaluate an office lease before committing to a long-term agreement",
+      "Industrial real estate demand trends driven by e-commerce growth"
+    ],
+    "review_response_style": "Thank the client for the confidence placed in the agency and reinforce the team commitment to delivering outstanding commercial real estate outcomes.",
+    "compliance_restrictions": "Do not guarantee specific investment returns, lease savings, or property appreciation rates in any public-facing content or review responses."
+  },
+  "knowledge_pct": 0,
+  "is_launched": false,
+  "created_at": "2026-07-03T16:53:01.755450+00:00",
+  "updated_at": "2026-07-05T19:17:10.283670+00:00",
+  "value_props": [
+    {
+      "lane": "location",
+      "text": "Full-service commercial real estate agency specializing in office, retail, industrial, and multifamily investment transactions across the local market"
+    },
+    {
+      "lane": "location",
+      "text": "Data-driven market research, proforma analysis, and cap rate benchmarking to help investors and tenants make confident, informed decisions"
+    },
+    {
+      "lane": "location",
+      "text": "Expert site selection and feasibility analysis tailored to your business footprint, tenant mix strategy, and gross leasable area requirements"
+    },
+    {
+      "lane": "location",
+      "text": "End-to-end transaction management covering listing, marketing, negotiations, due diligence, and estoppel certificate coordination"
+    },
+    {
+      "lane": "location",
+      "text": "Investment portfolio acquisition and disposition services optimized around net operating income, absorption rate, and capitalization rate targets"
+    },
+    {
+      "lane": "location",
+      "text": "Ongoing commercial property management and post-close advisory to protect asset value and support future sale-leaseback or disposition strategies"
+    }
+  ],
+  "search_intents": [
+    {
+      "lane": "location",
+      "query": "commercial real estate agency near {neighborhood} for office space leasing"
+    },
+    {
+      "lane": "location",
+      "query": "industrial warehouse property for sale or lease in {city}"
+    },
+    {
+      "lane": "location",
+      "query": "retail space leasing with tenant mix advisory in {neighborhood}"
+    },
+    {
+      "lane": "location",
+      "query": "multifamily investment property sales and cap rate analysis {city}"
+    },
+    {
+      "lane": "location",
+      "query": "commercial real estate market research and vacancy rate report {city}"
+    },
+    {
+      "lane": "location",
+      "query": "development land brokerage and site feasibility analysis {neighborhood}"
+    },
+    {
+      "lane": "location",
+      "query": "triple net lease properties for sale in {city}"
+    },
+    {
+      "lane": "location",
+      "query": "commercial property management company {city} investment portfolio"
+    }
+  ],
+  "conversion_actions": [
+    {
+      "key": "schedule_market_consultation",
+      "lane": "location",
+      "label": "Schedule Market Consultation",
+      "agent_goal": "Capture investor or tenant prospect contact details and property need, and book a market analysis or property tour session with an agency specialist",
+      "schema_action": "ScheduleAction",
+      "profile_button": "Book Consultation"
+    },
+    {
+      "key": "request_property_listing_tour",
+      "lane": "location",
+      "label": "Request a Property Tour",
+      "agent_goal": "Qualify the prospect's space requirements, target submarket, and timeline, then schedule an in-person or virtual tour of available listings",
+      "schema_action": "ReserveAction",
+      "profile_button": "Tour a Property"
+    },
+    {
+      "key": "view_available_listings",
+      "lane": "location",
+      "label": "Browse Available Listings",
+      "agent_goal": "Direct the prospect to current office, retail, industrial, and investment property listings filtered by city, size, and transaction type",
+      "schema_action": "ViewAction",
+      "profile_button": "View Listings"
+    },
+    {
+      "key": "contact_for_investment_analysis",
+      "lane": "location",
+      "label": "Get a Proforma & Cap Rate Analysis",
+      "agent_goal": "Collect property address or target asset class and investor criteria, then connect the prospect with a broker to deliver a proforma analysis and capitalization rate benchmarking report",
+      "schema_action": "CommunicateAction",
+      "profile_button": "Get Investment Analysis"
+    },
+    {
+      "key": "submit_property_for_listing",
+      "lane": "location",
+      "label": "List Your Commercial Property",
+      "agent_goal": "Gather property details including type, GLA, location, and ownership structure, and initiate the listing intake process with the agency's transaction team",
+      "schema_action": "CommunicateAction",
+      "profile_button": "List Your Property"
+    },
+    {
+      "key": "subscribe_market_reports",
+      "lane": "location",
+      "label": "Subscribe to Market Reports",
+      "agent_goal": "Capture the prospect's email and asset class interests to deliver recurring commercial real estate analytics, vacancy rate trends, and absorption rate updates for their target market",
+      "schema_action": "SubscribeAction",
+      "profile_button": "Get Market Updates"
+    }
+  ],
+  "_compliance": {
+    "gcid": "gcid:commercial_real_estate_agency",
+    "display_license_on_profile": true,
+    "display_license_on_content": false,
+    "display_license_on_ads": false,
+    "display_license_on_email": false,
+    "license_display_format": "State Real Estate Broker License #",
+    "license_label": null,
+    "required_disclaimers": [
+      "All information is deemed reliable but not guaranteed and is subject to change without notice.",
+      "This is not a solicitation if the property is currently listed with another broker.",
+      "Consult a qualified attorney and tax advisor before completing any commercial real estate transaction.",
+      "Environmental assessments referenced do not constitute a warranty of environmental condition.",
+      "Commercial mortgage referrals do not constitute a lending commitment or financial advice.",
+      "Agency representatives are required to disclose any known material facts and conflicts of interest as mandated by state law."
+    ],
+    "disclaimer_placement": null,
+    "content_restrictions": [
+      "Must not advertise guaranteed returns or investment outcomes",
+      "Must disclose dual agency relationships in all marketing materials where permitted",
+      "Must include state broker license number in all advertising per state real estate commission rules",
+      "Must not make claims of ADA compliance on behalf of a listed property without verified assessment",
+      "Must comply with FinCEN beneficial ownership reporting requirements for applicable transactions",
+      "Must not use the CCIM or SIOR designations in advertising unless currently held by a named broker"
+    ],
+    "prohibited_phrases": [
+      "assured zoning approval",
+      "best price guaranteed",
+      "certified ADA compliant",
+      "guaranteed 1031 exchange qualification",
+      "guaranteed appraisal value",
+      "guaranteed approval for financing",
+      "guaranteed cap rate",
+      "guaranteed lease rate",
+      "guaranteed lease terms",
+      "guaranteed return on investment",
+      "guaranteed sale price",
+      "guaranteed tenant placement",
+      "guaranteed to sell",
+      "no environmental issues",
+      "no risk commercial investment",
+      "promised closing date",
+      "risk-free investment",
+      "this property will appreciate",
+      "we always get top dollar"
+    ],
+    "required_disclosures": null,
+    "age_gate_required": false,
+    "age_gate_minimum": 18,
+    "age_gate_type": null,
+    "hipaa_applies": false,
+    "coppa_applies": false,
+    "glba_applies": true,
+    "ferpa_applies": false,
+    "regulated_by": [
+      "State Real Estate Commission (jurisdiction-specific)",
+      "Financial Crimes Enforcement Network (FinCEN) — Bank Secrecy Act",
+      "U.S. Department of Housing and Urban Development (HUD) — RESPA where applicable",
+      "U.S. Department of Justice — ADA Title III enforcement",
+      "U.S. Environmental Protection Agency — Phase I/II environmental disclosure standards",
+      "Equal Credit Opportunity Act (Regulation B) — CFPB enforcement for financing referrals"
+    ],
+    "advertising_rules_url": null,
+    "compliance_notes": null,
+    "review_verification_required": false,
+    "review_transaction_required": false,
+    "created_at": "2026-07-06T15:17:34.621553+00:00",
+    "updated_at": "2026-07-06T15:17:34.621553+00:00"
+  }
+}

@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Leads and hot visitors · Conversion Agent (demo)</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/static/dash.css">
+  <style>
+    /* the leads table fits its card: fixed columns, text cut at the column edge, the time on a second line */
+    .ltable { table-layout: fixed; width: 100%; }
+    .ltable th, .ltable td { padding: 11px 8px; }
+    .ltable td.clip { max-width: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ltable td.meta { white-space: normal; line-height: 1.35; }
+    .ltable td.name { white-space: normal; overflow-wrap: anywhere; line-height: 1.3; }
+    .ltable th.num, .ltable td.num { text-align: right; }
+  </style>
+</head>
+<body>
+<header class="hero" id="hero"></header>
+
+<main class="wrap page">
+  <p class="demo-note">Demo page. The people and numbers are made up. Status changes are saved to the change history.</p>
+
+  <section class="grid g3" id="strip"></section>
+
+  <section class="card mt">
+    <div class="toolbar">
+      <div class="seg" id="tabs" role="tablist">
+        <button data-t="leads" class="on" role="tab">Leads</button>
+        <button data-t="hot" role="tab">Hot visitors</button>
+      </div>
+      <input class="search" id="search" type="search" placeholder="Search by name, contact, question, reason or location" aria-label="Search">
+      <div class="seg" id="status" role="group" aria-label="Status">
+        <button data-s="all" class="on">All</button>
+        <button data-s="new">New</button>
+        <button data-s="contacted">Contacted</button>
+        <button data-s="closed">Closed</button>
+      </div>
+    </div>
+    <div class="toolbar" id="typeBar">
+      <span class="sub">Type</span>
+      <div class="seg" id="types" role="group" aria-label="Type of request"></div>
+    </div>
+
+    <div class="table-wrap" id="leadsView">
+      <table class="ltable">
+        <colgroup><col style="width:96px"><col style="width:14%"><col style="width:17%"><col style="width:20%"><col style="width:13%"><col style="width:16%"><col style="width:124px"><col style="width:56px"></colgroup>
+        <thead><tr><th>When</th><th>Name</th><th>Contact</th><th>Question</th><th>Domain</th>
+          <th>Type</th><th>Status</th><th class="num">Score</th></tr></thead>
+        <tbody id="leadRows"></tbody>
+      </table>
+    </div>
+
+    <div class="table-wrap hidden" id="hotView">
+      <table>
+        <thead><tr><th>Last seen</th><th>Location</th><th>Domain</th><th>Score</th><th class="hide-sm">Chat</th></tr></thead>
+        <tbody id="hotRows"></tbody>
+      </table>
+    </div>
+
+    <div class="foot">
+      <span class="sub" id="count"></span>
+      <button class="btn ghost" id="more">Show 20 more</button>
+    </div>
+  </section>
+</main>
+
+<script src="/static/dash.js"></script>
+<script>
+(function () {
+  "use strict";
+  var D = Dash;
+  var PAGE = 20, shown = PAGE;
+  var people = null, dash = null;
+  var tab = "leads";
+  var q = { domain: "all", period: 30, status: "all", type: "all", query: "" };
+
+  var REASON_CLASS = { "Request from visitor": "r-request", "Spent more time in widget": "r-time",
+                       "Unavailable or unknown answer": "r-unavail", "Confused question": "r-confused",
+                       "Unsure question": "r-unsure" };
+  var STATUS_COLOR = { new: "#d9534f", contacted: "#d08a1e", closed: "#1f9d6b" };
+
+  D.hero({
+    page: "people", title: "Leads and hot visitors", domain: true, period: 30,
+    periods: [[7, "7 days"], [30, "30 days"], [90, "90 days"], ["all", "All"]],
+    onChange: function (s) { q.domain = s.domain; q.period = s.period; shown = PAGE; render(); }
+  });
+
+  // The date and the time on two lines, so the When column stays narrow.
+  function whenTwo(iso) {
+    var x = new Date(iso);
+    return x.toLocaleDateString("en-US", { month: "short", day: "numeric" }) + "<br>" +
+      x.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  }
+  function inRange(iso) {
+    return q.period === "all" || Date.now() - new Date(iso).getTime() <= q.period * D.DAY;
+  }
+  function inDomain(dom) { return q.domain === "all" || dom === q.domain; }
+  function daysInPeriod() { return q.period === "all" ? dash.daily.length : q.period; }
+
+  // Visitors, chats, leads and hot visitors for the period and the domain, from the daily numbers.
+  function totals() {
+    var list = q.domain === "all" ? dash.customer.domains : [q.domain];
+    var out = { visitors: 0, chats: 0, leads: 0, hot: 0 };
+    dash.daily.slice(-daysInPeriod()).forEach(function (row) {
+      list.forEach(function (dom) {
+        var v = row.domains[dom];
+        out.visitors += v.visitors; out.chats += v.chats; out.leads += v.leads; out.hot += v.hot;
+      });
+    });
+    return out;
+  }
+
+  function filteredLeads() {
+    var query = q.query.trim().toLowerCase();
+    return people.leads.filter(function (l) {
+      var text = [l.name, l.email, l.phone, l.question, l.location, l.reason, l.request_type].join(" ").toLowerCase();
+      return inDomain(l.domain) && inRange(l.when) && (q.status === "all" || l.status === q.status) &&
+        (q.type === "all" || l.request_type === q.type) && (!query || text.indexOf(query) >= 0);
+    });
+  }
+  function filteredHot() {
+    var query = q.query.trim().toLowerCase();
+    return people.hot.filter(function (h) {
+      var text = [h.location, h.summary].join(" ").toLowerCase();
+      return inDomain(h.domain) && inRange(h.seen) && (!query || text.indexOf(query) >= 0);
+    });
+  }
+
+  // The business's own request types (table booking, direct handover, ...) with how many of each, for the filter.
+  function renderTypes() {
+    var counts = {};
+    people.leads.filter(function (l) { return inDomain(l.domain) && inRange(l.when); }).forEach(function (l) {
+      counts[l.request_type] = (counts[l.request_type] || 0) + 1;
+    });
+    var names = Object.keys(counts).sort();
+    if (q.type !== "all" && !counts[q.type]) q.type = "all";
+    var total = names.reduce(function (n, k) { return n + counts[k]; }, 0);
+    document.getElementById("types").innerHTML =
+      '<button data-y="all"' + (q.type === "all" ? ' class="on"' : "") + ">All (" + total + ")</button>" +
+      names.map(function (k) {
+        return '<button data-y="' + D.esc(k) + '"' + (q.type === k ? ' class="on"' : "") + ">" + D.esc(k) + " (" + counts[k] + ")</button>";
+      }).join("");
+    document.getElementById("typeBar").classList.toggle("hidden", tab !== "leads");
+  }
+
+  function renderStrip() {
+    var t = totals(), p = D.pct(t.leads, t.visitors);
+    var leads = people.leads.filter(function (l) { return inDomain(l.domain) && inRange(l.when); });
+    var parts = ["new", "contacted", "closed"].map(function (s) {
+      return { value: leads.filter(function (l) { return l.status === s; }).length, color: STATUS_COLOR[s], label: s };
+    });
+    var hotCount = t.hot;
+    document.getElementById("strip").innerHTML =
+      '<div class="card"><div class="card-head" style="margin-bottom:10px"><div><div class="label">Visit to lead</div>' +
+      '<p class="hint">Share of visitors who left a name and contact</p></div><div class="ico c-visit">' + D.icon("visitors") + "</div></div>" +
+      '<div class="row" style="gap:18px;flex-wrap:nowrap">' + D.ring(p, "#2f6fd6", 112) +
+      '<div><div class="big" style="font-size:26px">' + D.fmt(t.leads) + '</div><div class="sub">leads from ' + D.fmt(t.visitors) + " visitors</div></div></div></div>" +
+      '<div class="card"><div class="card-head" style="margin-bottom:10px"><div><div class="label">Lead status</div>' +
+      '<p class="hint">Leads in the selected period</p></div><div class="ico c-lead">' + D.icon("lead") + "</div></div>" +
+      '<div class="donut-wrap">' + D.donut(parts, { size: 112, stroke: 14, label: "Lead status", center:
+        '<div><div style="font-weight:760;font-size:18px">' + D.fmt(leads.length) + '</div><div class="sub" style="font-size:11px">leads</div></div>' }) +
+      '<div class="donut-legend">' + parts.map(function (x) {
+        return '<div><i style="background:' + x.color + '"></i>' + x.label.charAt(0).toUpperCase() + x.label.slice(1) + "<b>" + D.fmt(x.value) + "</b></div>";
+      }).join("") + "</div></div></div>" +
+      '<div class="card"><div class="card-head" style="margin-bottom:10px"><div><div class="label">Hot visitors</div>' +
+      '<p class="hint">Score ' + people.threshold + " or more is hot</p></div><div class=\"ico c-hot\">" + D.icon("hot") + "</div></div>" +
+      '<div class="big" style="font-size:40px">' + D.fmt(hotCount) + '</div><div class="sub">hot visitors in the selected period</div>' +
+      '<p class="sub" style="margin:14px 0 0">Shown separately from leads. Open the Hot visitors tab to see them.</p></div>';
+  }
+
+  function render() {
+    var leads = filteredLeads(), hot = filteredHot();
+    var visible = (tab === "leads" ? leads : hot).slice(0, shown);
+    document.getElementById("leadsView").classList.toggle("hidden", tab !== "leads");
+    document.getElementById("hotView").classList.toggle("hidden", tab !== "hot");
+    document.getElementById("status").classList.toggle("hidden", tab !== "leads");
+    if (tab === "leads") {
+      document.getElementById("leadRows").innerHTML = visible.map(function (l) {
+        var contact = l.email ? D.esc(l.email) : D.esc(l.phone);
+        return '<tr class="click" data-id="' + l.id + '"><td class="meta">' + whenTwo(l.when) + '</td><td class="name">' + D.esc(l.name) +
+          '</td><td class="clip">' + contact + '</td><td class="clip">' + D.esc(l.question) +
+          '</td><td class="clip"><span class="tag">' + D.esc(l.domain) + '</span></td><td class="clip"><span class="tag">' + D.esc(l.request_type) + '</span></td><td><select class="status-select s-' + l.status + '" data-status="' + l.id + '" aria-label="Status for ' + D.esc(l.name) + '">' +
+          ["new", "contacted", "closed"].map(function (s) { return "<option" + (s === l.status ? " selected" : "") + ">" + s + "</option>"; }).join("") + "</select></td>" +
+          '<td class="num"><span class="score">' + l.score + "</span></td></tr>";
+      }).join("") || '<tr><td colspan="8" class="empty">No leads match.</td></tr>';
+    } else {
+      document.getElementById("hotRows").innerHTML = visible.map(function (h) {
+        var isHot = h.score >= people.threshold;
+        return '<tr class="click" data-id="' + h.id + '"><td class="meta">' + D.ago(h.seen) + '</td>' +
+          '<td class="name">' + D.esc(h.location) + (isHot ? '<span class="hot-tag">hot</span>' : "") + "</td>" +
+          '<td><span class="tag">' + D.esc(h.domain) + '</span></td><td><span class="score' + (isHot ? "" : " cool") + '">' + h.score + "</span></td>" +
+          '<td class="hide-sm">' + (h.chatted ? "yes, " + D.mmss(h.seconds_chat) : "no") + "</td></tr>";
+      }).join("") || '<tr><td colspan="7" class="empty">No hot visitors in this period.</td></tr>';
+    }
+    var list = tab === "leads" ? leads : hot;
+    document.getElementById("count").textContent = "Showing " + visible.length + " of " + list.length;
+    document.getElementById("more").disabled = visible.length >= list.length;
+    renderTypes();
+    renderStrip();
+  }
+
+  // An extra field of the request as a row: party_size becomes "Party size".
+  function extraFacts(extra) {
+    return Object.keys(extra || {}).map(function (k) {
+      var label = k.replace(/_/g, " ");
+      return { k: label.charAt(0).toUpperCase() + label.slice(1), v: D.esc(String(extra[k])), wide: String(extra[k]).length > 40 };
+    });
+  }
+
+  function openLead(item) {
+    var contact = item.email ? ["Email", item.email] : ["Phone", item.phone];
+    var sum = '<div class="sec"><h3>Summary</h3><p class="summary">' + D.esc(item.summary) + "</p></div>";
+    var body = sum + '<div class="sec">' + D.facts([
+      { k: "Status", v: '<select class="status-select s-' + item.status + '" id="dStatus" aria-label="Status">' +
+        ["new", "contacted", "closed"].map(function (s) { return "<option" + (s === item.status ? " selected" : "") + ">" + s + "</option>"; }).join("") + "</select>" },
+      { k: "Type", v: '<span class="tag">' + D.esc(item.request_type) + "</span>" },
+      { k: "Action", v: D.esc(item.action || "none") },
+      { k: contact[0], v: D.esc(contact[1]) },
+      { k: "Why it was sent", v: '<span class="reason ' + (REASON_CLASS[item.reason] || "r-request") + '">' + D.esc(item.reason) + "</span>" },
+      { k: "Location", v: D.esc(item.location) },
+      { k: "Sent", v: D.when(item.when) },
+      { k: "Request", v: D.esc(item.question), wide: true }].concat(extraFacts(item.extra)).concat([
+      { k: "Time on site", v: item.seconds_site == null ? "not tracked" : D.mmss(item.seconds_site) },
+      { k: "Time in the chat", v: D.mmss(item.seconds_chat) },
+      { k: "Pages and clicks", v: item.pages == null ? "not tracked" : item.pages + " pages · " + item.clicks + " clicks" },
+      { k: "Score", v: item.score }
+    ])) + "</div>";
+    body += '<div class="sec"><h3>Whole conversation</h3>' + (item.conversation.length ? D.thread(item.conversation) :
+      '<div class="nodemo">No conversation stored for this lead.</div>') + "</div>";
+    var dBody = D.openDrawer(item.domain + " · " + D.when(item.when), item.name, body);
+    dBody.querySelector("#dStatus").addEventListener("change", function (e) {
+      setStatus(item, e.target.value, e.target);
+      e.target.className = "status-select s-" + e.target.value;
+    });
+  }
+
+  function openHot(item) {
+    var body = '<div class="sec"><h3>Summary</h3><p class="summary">' + D.esc(item.summary || "No chat, so no summary.") + "</p></div>" +
+      '<div class="sec">' + D.facts([
+        { k: "Location", v: D.esc(item.location) }, { k: "Domain", v: D.esc(item.domain) },
+        { k: "Last seen", v: D.when(item.seen) }, { k: "Score", v: item.score },
+        { k: "Time in the chat", v: item.chatted ? D.mmss(item.seconds_chat) : "no chat" }
+      ]) + "</div>";
+    body += '<div class="sec"><h3>Whole conversation</h3>' + (item.conversation.length ? D.thread(item.conversation) :
+      '<div class="nodemo">This visitor did not chat, so there is no conversation.</div>') + "</div>";
+    D.openDrawer("Hot visitor · " + item.domain, item.location, body);
+  }
+
+  function openRow(id) {
+    if (tab === "leads") {
+      var l = people.leads.find(function (x) { return x.id === id; });
+      if (l) openLead(l);
+    } else {
+      var h = people.hot.find(function (x) { return x.id === id; });
+      if (h) openHot(h);
+    }
+  }
+
+  document.getElementById("tabs").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    tab = b.dataset.t; shown = PAGE;
+    document.querySelectorAll("#tabs button").forEach(function (x) { x.classList.toggle("on", x === b); });
+    render();
+  });
+  document.getElementById("status").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    q.status = b.dataset.s; shown = PAGE;
+    document.querySelectorAll("#status button").forEach(function (x) { x.classList.toggle("on", x === b); });
+    render();
+  });
+  document.getElementById("types").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    q.type = b.dataset.y; shown = PAGE;
+    render();
+  });
+  document.getElementById("search").addEventListener("input", function (e) { q.query = e.target.value; shown = PAGE; render(); });
+  document.getElementById("more").addEventListener("click", function () { shown += PAGE; render(); });
+  document.getElementById("leadRows").addEventListener("click", function (e) {
+    if (e.target.closest("select, input, button, label")) return;
+    var tr = e.target.closest("tr[data-id]"); if (tr) openRow(tr.dataset.id);
+  });
+  document.getElementById("leadRows").addEventListener("change", function (e) {
+    var sel = e.target.closest("select[data-status]"); if (!sel) return;
+    setStatus(people.leads.find(function (x) { return x.id === sel.dataset.status; }), sel.value, sel);
+  });
+  // A status change from the list or the side panel is saved to the change history first.
+  function setStatus(lead, status, control) {
+    var before = lead.status;
+    D.send("PUT", "/leads/" + encodeURIComponent(lead.id) + "/status", { status: status }).then(function () {
+      lead.status = status; render();
+      D.toast("Status set to " + status + " for " + lead.name + " (saved)");
+    }).catch(function (err) {
+      if (control) control.value = before;
+      D.toast(err.message);
+    });
+  }
+  document.getElementById("hotRows").addEventListener("click", function (e) { var tr = e.target.closest("tr[data-id]"); if (tr) openRow(tr.dataset.id); });
+
+  D.get("/people").then(function (p) {
+    people = p;
+    return D.get("/dashboard");
+  }).then(function (d) {
+    dash = d;
+    D.setName(d.customer.name, "Leads and hot visitors");
+    D.setDomains(d.customer.domains);
+    render();
+  }).catch(function () {
+    D.setName("No page for this address", "Leads and hot visitors");
+    document.querySelector("main").innerHTML = '<div class="card empty">Check the address, for example /c/loc_spice_garden_01/people.</div>';
+  });
+})();
+</script>
+</body>
+</html>

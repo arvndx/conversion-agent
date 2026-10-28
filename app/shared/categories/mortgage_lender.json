@@ -1,0 +1,246 @@
+{
+  "id": "bc33ace8-1bbf-49ef-9ed1-9d353b2eefe4",
+  "gcid": "gcid:mortgage_lender",
+  "entity_type": "location",
+  "pricing_tier": "professional",
+  "status": "pending",
+  "exclusion_reason": null,
+  "terminology": null,
+  "services": [
+    "conventional purchase mortgage origination",
+    "FHA insured home loans",
+    "VA guaranteed mortgage loans",
+    "USDA rural housing loans",
+    "jumbo and non-conforming loan programs",
+    "home equity line of credit",
+    "cash-out refinance",
+    "rate and term refinance",
+    "construction-to-permanent loans",
+    "reverse mortgage origination"
+  ],
+  "compliance_rules": [
+    "Truth in Lending Act Regulation Z disclosure requirements",
+    "Real Estate Settlement Procedures Act Regulation X compliance",
+    "Home Mortgage Disclosure Act reporting obligations",
+    "Community Reinvestment Act fair lending standards",
+    "Equal Credit Opportunity Act non-discrimination requirements",
+    "CFPB ability-to-repay and qualified mortgage rule",
+    "state depository and non-depository lender licensing requirements",
+    "NMLS registration for all loan originators"
+  ],
+  "customer_journey": [
+    "online or branch pre-application and credit pull",
+    "loan program selection and official application",
+    "processing documentation and appraisal ordering",
+    "underwriting review and conditional approval",
+    "closing disclosure delivery and loan closing"
+  ],
+  "ranking_factors": [
+    "Google Business Profile completeness with branch photos and loan product details",
+    "review volume emphasizing fast approval times and transparent fees",
+    "citations in mortgage and real estate financial directories",
+    "local content targeting purchase and refinance intent keywords",
+    "structured data schema for financial institution entity",
+    "backlinks from local real estate associations and housing agencies"
+  ],
+  "review_vocabulary": null,
+  "content_topics": null,
+  "expertise_signals": [
+    "NMLS company and individual originator license",
+    "HUD approved FHA lender status",
+    "VA approved lender designation",
+    "USDA approved lender status",
+    "Fannie Mae and Freddie Mac seller servicer approval",
+    "state banking department chartered or licensed status"
+  ],
+  "scoring_weights": null,
+  "ai_agents": {
+    "sdr_tone": "professional",
+    "key_directories": [
+      "Google Business Profile",
+      "Zillow Mortgage Marketplace",
+      "LendingTree",
+      "Bankrate",
+      "NMLS Consumer Access",
+      "Yelp",
+      "BBB",
+      "NerdWallet"
+    ],
+    "top_content_topics": [
+      "how mortgage lenders determine your interest rate",
+      "what is private mortgage insurance and how to avoid it",
+      "understanding escrow accounts and how they work"
+    ],
+    "review_response_style": "Express genuine appreciation and reinforce the commitment to transparent lending and timely closings for every borrower.",
+    "compliance_restrictions": "All rate and fee mentions in public responses must comply with TILA and CFPB advertising rules; avoid guaranteed approval or pre-approval language without proper disclosures."
+  },
+  "knowledge_pct": 0,
+  "is_launched": false,
+  "created_at": "2026-07-25T15:20:18.180141+00:00",
+  "updated_at": "2026-07-25T15:20:18.180141+00:00",
+  "value_props": [
+    {
+      "lane": "location",
+      "text": "Full-service mortgage branch offering purchase loans, cash-out refinance, HELOCs, and reverse mortgage origination under one roof."
+    },
+    {
+      "lane": "location",
+      "text": "Local underwriting and processing team that accelerates conditional approval and keeps your closing timeline on track."
+    },
+    {
+      "lane": "location",
+      "text": "Accessible branch with in-person consultations for complex loan programs including construction-to-permanent and reverse mortgages."
+    },
+    {
+      "lane": "location",
+      "text": "Community-rooted lender with portfolio loan options that go beyond secondary mortgage market guidelines when your situation requires flexibility."
+    },
+    {
+      "lane": "location",
+      "text": "Competitive rate-and-term refinance programs with clear points-and-credits options tailored to local market conditions."
+    },
+    {
+      "lane": "location",
+      "text": "Trusted neighborhood mortgage office with demonstrated servicing rights transparency and escrow account management you can rely on year after year."
+    }
+  ],
+  "search_intents": [
+    {
+      "lane": "location",
+      "query": "mortgage lender near me in {city}"
+    },
+    {
+      "lane": "location",
+      "query": "home loan office {neighborhood} open Saturday"
+    },
+    {
+      "lane": "location",
+      "query": "mortgage company {city} in-person pre-approval"
+    },
+    {
+      "lane": "location",
+      "query": "HELOC lender branch {city} same-day consultation"
+    },
+    {
+      "lane": "location",
+      "query": "FHA and VA mortgage office {neighborhood}"
+    },
+    {
+      "lane": "location",
+      "query": "refinance lender {city} lowest origination fee"
+    },
+    {
+      "lane": "location",
+      "query": "local portfolio loan lender {city} non-conforming"
+    },
+    {
+      "lane": "location",
+      "query": "mortgage branch {neighborhood} construction loan programs"
+    }
+  ],
+  "conversion_actions": [
+    {
+      "key": "visit_branch",
+      "lane": "location",
+      "label": "Visit Our Mortgage Branch",
+      "agent_goal": "Provide branch address, hours, parking details, and available loan programs at this location to encourage an in-person visit for application or consultation.",
+      "schema_action": "ViewAction",
+      "profile_button": "Get Directions"
+    },
+    {
+      "key": "branch_preapplication",
+      "lane": "location",
+      "label": "Start In-Branch Pre-Application",
+      "agent_goal": "Schedule a walk-in or appointment at the branch to complete a pre-application, initiate a credit pull, and select the best loan program with a local loan officer.",
+      "schema_action": "ScheduleAction",
+      "profile_button": "Book Branch Visit"
+    },
+    {
+      "key": "contact_branch",
+      "lane": "location",
+      "label": "Contact This Branch",
+      "agent_goal": "Connect the borrower directly with the branch team to answer questions about available loan programs, current rates, origination fees, and closing timelines.",
+      "schema_action": "CommunicateAction",
+      "profile_button": "Call or Message"
+    },
+    {
+      "key": "subscribe_rate_alerts",
+      "lane": "location",
+      "label": "Subscribe to Rate Alerts",
+      "agent_goal": "Enroll the prospect in rate-watch notifications for their target loan program and amount so they can act quickly when market conditions are favorable.",
+      "schema_action": "SubscribeAction",
+      "profile_button": "Get Rate Alerts"
+    }
+  ],
+  "_compliance": {
+    "gcid": "gcid:mortgage_lender",
+    "display_license_on_profile": true,
+    "display_license_on_content": true,
+    "display_license_on_ads": true,
+    "display_license_on_email": true,
+    "license_display_format": "NMLS # [number] | Licensed in [State(s)] | Equal Housing Lender",
+    "license_label": "NMLS #",
+    "required_disclaimers": [
+      "NMLS company ID and individual originator NMLS IDs must be disclosed on all advertising and communications",
+      "Equal Housing Lender statement and logo required on all advertising materials",
+      "Loan terms subject to change; rates shown are for informational purposes only and not a commitment to lend",
+      "APR disclosure required on all rate advertisements per Regulation Z",
+      "Loan Estimate provided within 3 business days of complete application per TRID",
+      "This is not a commitment to lend; all loans subject to credit approval and property appraisal",
+      "Reverse mortgage borrowers must receive HUD-approved counseling prior to application",
+      "VA loans available to eligible veterans, active duty service members, and surviving spouses only"
+    ],
+    "disclaimer_placement": [
+      "profile footer",
+      "adjacent to any rate or term advertisement (Reg Z trigger terms)"
+    ],
+    "content_restrictions": [
+      "All rate advertisements must include APR per Regulation Z Trigger Terms rules",
+      "Representative example required when any specific loan term is advertised",
+      "Fair Housing and ECOA non-discrimination language required in all advertising",
+      "HMDA data must be reported annually; advertising cannot evidence redlining or reverse redlining",
+      "CFPB UDAAP prohibits unfair, deceptive, or abusive acts in advertising",
+      "State-specific advertising disclosures required in each licensed jurisdiction",
+      "Social media posts containing rate or term information require full Reg Z disclosures",
+      "NMLS Unique Identifier must appear on all marketing materials including website and business cards"
+    ],
+    "prohibited_phrases": [
+      "guaranteed approval",
+      "no credit check required",
+      "lowest rates guaranteed",
+      "pre-approved with no income verification",
+      "we guarantee the lowest closing costs",
+      "immediate loan approval",
+      "100% financing guaranteed",
+      "no documentation required",
+      "no closing costs ever",
+      "instant guaranteed approval"
+    ],
+    "required_disclosures": null,
+    "age_gate_required": false,
+    "age_gate_minimum": 18,
+    "age_gate_type": null,
+    "hipaa_applies": false,
+    "coppa_applies": false,
+    "glba_applies": true,
+    "ferpa_applies": false,
+    "regulated_by": [
+      "Consumer Financial Protection Bureau (CFPB)",
+      "U.S. Department of Housing and Urban Development (HUD)",
+      "Federal Housing Finance Agency (FHFA)",
+      "U.S. Department of Veterans Affairs (VA)",
+      "USDA Rural Development",
+      "State Banking Departments (varies by state)",
+      "Nationwide Multistate Licensing System and Registry (NMLS)",
+      "Fannie Mae",
+      "Freddie Mac",
+      "Ginnie Mae"
+    ],
+    "advertising_rules_url": null,
+    "compliance_notes": null,
+    "review_verification_required": false,
+    "review_transaction_required": false,
+    "created_at": "2026-07-06T15:17:34.621553+00:00",
+    "updated_at": "2026-07-06T15:17:34.621553+00:00"
+  }
+}

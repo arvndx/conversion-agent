@@ -1,0 +1,24 @@
+[project]
+name = "conversion-agent-app"
+version = "0.1.0"
+description = "Conversion Agent: output database schema, mock data and two test sites."
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "psycopg[binary]>=3.1",
+    "redis>=8.1.0",
+    "rapidfuzz>=3.14.6",
+    "anthropic>=1.15.0",
+    "python-dotenv>=1.2.4",
+]
+
+[tool.uv]
+package = false
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "playwright>=1.64.0",
+    "pytest>=9.1.1",
+]

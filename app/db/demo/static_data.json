@@ -1,0 +1,404 @@
+{
+  "messages": {
+    "form_intro": "Please fill in these details and I will pass them to {customer_name}.",
+    "request_sent": "We have conveyed your request to {customer_name}. They will contact you back as soon as possible.",
+    "request_not_saved": "We are unable to process your request right away. Could you please contact {customer_name} directly on {contact}?",
+    "request_not_saved_no_contact": "We are unable to process your request right away. Please try again in a few minutes.",
+    "details_link_reply": "Here is the link: {link}",
+    "critical_handover_follow": "Would you like to leave your details so {customer_name} can contact you?"
+  },
+  "intents": {
+    "greeting": {
+      "patterns": [
+        "hi",
+        "hello",
+        "hey",
+        "hiya",
+        "howdy",
+        "yo",
+        "sup",
+        "whats up",
+        "good morning",
+        "good afternoon",
+        "good evening",
+        "good day",
+        "greetings",
+        "hello there",
+        "hi there",
+        "hey there",
+        "hi bot",
+        "hello bot"
+      ],
+      "replies": [
+        "Hi, I'm here to help with {customer_name}. Ask me anything about the business.",
+        "Hello! I'm the assistant for {customer_name}. What can I help you with today?",
+        "Hi there! I can help with questions about {customer_name}. What would you like to know?",
+        "Good to see you. What would you like to know about {customer_name}?",
+        "Hello, and welcome to the {customer_name} chat. What can I help you find?",
+        "Hi! Tell me what you'd like to know about {customer_name}.",
+        "Hey, thanks for stopping by {customer_name}. How can I help?",
+        "Hello! Welcome. What brings you to {customer_name} today?",
+        "Good day! Ask me anything about {customer_name}, such as opening hours or how to get in touch.",
+        "Hi, great to hear from you. What would you like to know?",
+        "Welcome! I can answer questions about {customer_name} or help you get in touch with them. Where shall we start?",
+        "Hello! How can I help you with {customer_name} today?"
+      ]
+    },
+    "how_are_you": {
+      "patterns": [
+        "how are you",
+        "how are you doing",
+        "how are you today",
+        "hows it going",
+        "how is it going",
+        "how do you do",
+        "how r u",
+        "how are u",
+        "hope you are well",
+        "how have you been"
+      ],
+      "replies": [
+        "I'm doing well, thank you for asking! How can I help you with {customer_name}?",
+        "All good here, thanks! What would you like to know about {customer_name}?",
+        "Doing great, thanks for asking. What can I help you with today?",
+        "I'm well, thank you. How can I help you with {customer_name}?",
+        "Very well, thanks! Is there something about {customer_name} I can help you with?",
+        "I'm good, thank you. What brings you to {customer_name} today?",
+        "Thanks for asking, I'm doing well. What can I help you find out?",
+        "All is well on my side. Ask me anything about {customer_name}.",
+        "Doing fine, thank you! How may I help you?",
+        "I'm great, thanks. What would you like to know about {customer_name}?"
+      ]
+    },
+    "ai_identity": {
+      "patterns": [
+        "are you a bot",
+        "are you a robot",
+        "are you an ai",
+        "are you ai",
+        "are you human",
+        "are you a human",
+        "are you a real person",
+        "are you real",
+        "are you a real human",
+        "is this a bot",
+        "is this a robot",
+        "is this ai",
+        "is this a real person",
+        "am i talking to a bot",
+        "am i talking to a human",
+        "am i talking to a real person",
+        "am i chatting with a bot",
+        "am i chatting with a human",
+        "who are you",
+        "what are you",
+        "who am i talking to",
+        "who am i chatting with",
+        "what is your name",
+        "whats your name",
+        "who made you"
+      ],
+      "replies": [
+        "I'm an AI assistant for {customer_name}, not a person. I can answer questions about the business or pass your query on to them.",
+        "I'm a virtual assistant, not a human. I'm here to help with questions about {customer_name}.",
+        "You're chatting with an AI assistant for {customer_name}. I can help with questions, and I can pass your details on to the team.",
+        "I'm an automated assistant, so no, I'm not a real person. I can still help with questions about {customer_name}.",
+        "Good question. I'm an AI assistant that helps visitors of {customer_name}. If you'd prefer a person, I can pass your request to them.",
+        "I'm a chatbot powered by AI, here on behalf of {customer_name}. What can I help you with?",
+        "I'm a virtual assistant for {customer_name}, and not a human. I can answer questions or help you reach the team.",
+        "This is an AI assistant for {customer_name}. A person from the business can follow up if you leave your details.",
+        "I'm an AI, not a person, but I'm happy to help with anything about {customer_name}.",
+        "I'm the AI chat assistant for {customer_name}. Tell me what you need and I'll help, or I can pass it to a person at the business."
+      ]
+    },
+    "thanks": {
+      "patterns": [
+        "thanks",
+        "thank you",
+        "thanks a lot",
+        "thank you so much",
+        "thx",
+        "ty",
+        "tysm",
+        "cheers",
+        "much appreciated",
+        "appreciate it",
+        "many thanks",
+        "thanks a bunch",
+        "thank u",
+        "thank you very much",
+        "great thanks",
+        "thanks for your help",
+        "thanks for the help",
+        "you were helpful",
+        "great service",
+        "thanks so much"
+      ],
+      "replies": [
+        "You're welcome! Is there anything else I can help you with?",
+        "Glad I could help. Anything else you'd like to know about {customer_name}?",
+        "My pleasure! Let me know if you have any other questions.",
+        "Happy to help. Is there anything else you need?",
+        "Anytime! Anything else I can look up for you?",
+        "You're very welcome. Feel free to ask if anything else comes up.",
+        "No problem at all. Is there anything else about {customer_name} I can help with?",
+        "Glad that was useful! What else would you like to know?",
+        "Thanks for chatting with me. Anything else you need?",
+        "Of course! Just ask if you have more questions."
+      ]
+    },
+    "goodbye": {
+      "patterns": [
+        "bye",
+        "goodbye",
+        "bye bye",
+        "see you",
+        "see you later",
+        "see ya",
+        "cya",
+        "take care",
+        "good night",
+        "talk later",
+        "ttyl",
+        "thats all",
+        "that is all",
+        "have a good day",
+        "gotta go",
+        "i have to go",
+        "i need to go",
+        "thats all bye",
+        "ok bye",
+        "okay bye",
+        "thanks bye",
+        "thank you bye"
+      ],
+      "replies": [
+        "Goodbye, and thanks for visiting {customer_name}!",
+        "Take care! Hope to see you at {customer_name} soon.",
+        "Bye for now. Have a lovely day!",
+        "Thanks for stopping by. Come back anytime you have a question.",
+        "See you soon! Have a great day.",
+        "Goodbye! Feel free to chat again whenever you need help.",
+        "Until next time. Take care!",
+        "Thanks for your time. Have a wonderful day ahead.",
+        "All the best, and thanks for getting in touch with {customer_name}.",
+        "Bye! We're always happy to help when you're back.",
+        "Have a great day, and see you next time!"
+      ]
+    },
+    "acknowledgement": {
+      "patterns": [
+        "ok",
+        "okay",
+        "k",
+        "kk",
+        "alright",
+        "all right",
+        "got it",
+        "i see",
+        "understood",
+        "cool",
+        "noted",
+        "i understand",
+        "makes sense",
+        "sounds good"
+      ],
+      "replies": [
+        "Great. Is there anything else you'd like to know?",
+        "Sounds good. What else can I help you with?",
+        "Alright. Let me know if you have any other questions.",
+        "Okay. Is there anything else about {customer_name} I can help with?",
+        "Understood. What would you like to know next?",
+        "Glad that's clear. Anything else I can do for you?",
+        "Good. Feel free to ask if anything else comes up.",
+        "Noted. Is there something else you'd like to ask?",
+        "Perfect. I'm here if you need anything else.",
+        "Okay, what else can I help you with today?"
+      ]
+    },
+    "apology": {
+      "patterns": [
+        "sorry",
+        "sorry about that",
+        "my bad",
+        "my apologies",
+        "apologies",
+        "i apologize",
+        "i apologise",
+        "im sorry",
+        "sorry for the trouble",
+        "oops",
+        "my mistake",
+        "sorry for that",
+        "so sorry"
+      ],
+      "replies": [
+        "No problem at all. How can I help you?",
+        "That's fine. What would you like to know about {customer_name}?",
+        "No need to apologise. How can I help?",
+        "Not at all. What can I do for you?",
+        "It's all good. What would you like to ask?",
+        "No worries. Is there something about {customer_name} I can help with?",
+        "That's quite alright. How can I help you today?",
+        "Don't worry about it. What would you like to know?",
+        "No harm done. What can I help you with?",
+        "Thanks for saying so. How can I help you with {customer_name}?"
+      ]
+    },
+    "just_browsing": {
+      "patterns": [
+        "just browsing",
+        "im just browsing",
+        "just looking",
+        "im just looking",
+        "just looking around",
+        "im just looking around",
+        "only looking",
+        "just checking",
+        "just checking it out",
+        "nothing right now",
+        "not right now",
+        "maybe later",
+        "no thanks just looking"
+      ],
+      "replies": [
+        "No problem. I'm here if you have any questions about {customer_name}.",
+        "Take your time. Ask me anything whenever you're ready.",
+        "Of course. Have a look around, and let me know if I can help.",
+        "Sure thing. If a question comes up about {customer_name}, just ask.",
+        "That's fine. I'll be here if you need anything.",
+        "No rush. Feel free to ask if you'd like to know something.",
+        "Understood. I can help with questions about {customer_name} whenever you want.",
+        "Enjoy looking around. I'm here if you need me.",
+        "Okay. If you'd like opening hours or contact details, just ask.",
+        "Sounds good. Reach out any time you have a question."
+      ]
+    },
+    "social": {
+      "patterns": [
+        "lol",
+        "haha",
+        "ha ha",
+        "hehe",
+        "hmm",
+        "wow",
+        "interesting",
+        "youre funny",
+        "nice one",
+        "good bot",
+        "nice",
+        "awesome",
+        "great job",
+        "well done",
+        "cool bot",
+        "ha"
+      ],
+      "replies": [
+        "Happy to help. Is there anything you'd like to know about {customer_name}?",
+        "I'm glad. What can I help you find out about {customer_name}?",
+        "Thanks! What would you like to know?",
+        "Glad you think so. Is there something I can help you with?",
+        "Nice to hear. How can I help you today?",
+        "Thank you. Is there anything about {customer_name} you'd like to ask?",
+        "Ha, thanks! What can I help you with?",
+        "I appreciate that. What would you like to know about the business?",
+        "That's kind of you. How can I help?",
+        "Glad we're getting along. What can I do for you?"
+      ]
+    },
+    "privacy": {
+      "patterns": [
+        "is this chat recorded",
+        "is this recorded",
+        "is this chat being recorded",
+        "are you recording this",
+        "are you recording this chat",
+        "do you record chats",
+        "is this chat private",
+        "is my data safe",
+        "is my information safe",
+        "what do you do with my data",
+        "what do you do with my details",
+        "what do you do with my information",
+        "delete my data",
+        "delete my details",
+        "delete my information",
+        "can you delete my data",
+        "can you delete my information",
+        "how is my data used"
+      ],
+      "replies": [
+        "This chat is recorded, and {customer_name} receives the details you share. If you want your details deleted, please contact {customer_name} directly.",
+        "Yes, chats are recorded, and any details you share go to {customer_name}. To have your details removed, please contact {customer_name} directly.",
+        "Your messages are saved, and {customer_name} can see the contact details you give. For deletion requests, please contact {customer_name} directly.",
+        "This conversation is recorded. {customer_name} receives what you choose to share. To ask for your details to be deleted, please contact them directly.",
+        "Chats here are stored, and the details you share are passed to {customer_name}. If you'd like them deleted, please reach out to {customer_name} directly.",
+        "I should let you know that this chat is recorded and shared with {customer_name}. Please contact them directly if you want your information deleted.",
+        "The chat is recorded, and {customer_name} gets the details you enter. Deletion requests go to {customer_name} directly.",
+        "Yes, this chat is saved so that {customer_name} can follow up. You can ask them directly to delete your details.",
+        "Anything you share here is recorded and passed on to {customer_name}. Please contact {customer_name} directly if you'd like it removed.",
+        "To be open about it: this chat is recorded and {customer_name} receives the details you share. For deletion, please contact them directly."
+      ]
+    },
+    "unclear": {
+      "patterns": [
+        "what",
+        "huh",
+        "i didnt get that",
+        "i dont get it",
+        "i dont understand",
+        "i didnt understand",
+        "what do you mean",
+        "come again",
+        "pardon",
+        "say that again",
+        "can you repeat that",
+        "can you repeat",
+        "sorry what",
+        "i didnt get you"
+      ],
+      "replies": [
+        "Sorry about the confusion. Which part wasn't clear? I'll try to explain it another way.",
+        "Let me try again. Could you tell me what you'd like to know about {customer_name}?",
+        "Sorry, I didn't make that clear. What would you like me to explain?",
+        "I'm sorry if that was confusing. Could you say it another way, or ask me a new question?",
+        "No problem, let's try again. What would you like to know?",
+        "Apologies for the confusion. Tell me what you need and I'll keep it simple.",
+        "Sorry, I may have misunderstood. Could you tell me a bit more about what you're looking for?",
+        "Let's start again. What can I help you with at {customer_name}?",
+        "I'm sorry, that wasn't clear. Could you rephrase your question?",
+        "I want to get this right. Could you say it in a few more words?"
+      ]
+    },
+    "abuse_warning": {
+      "patterns": [],
+      "replies": [
+        "Please keep the chat respectful. I can help with questions about {customer_name}.",
+        "Let's keep this chat respectful, please. I'm happy to help with questions about {customer_name}.",
+        "I can only help if we keep the conversation polite. What would you like to know about {customer_name}?",
+        "Please keep your messages respectful. I'm here to help with {customer_name}.",
+        "That language isn't something I can respond to. I'm glad to help if we keep things respectful.",
+        "Let's keep things polite so I can help you. What would you like to know?",
+        "I'd like to help, but please keep the chat respectful.",
+        "Please be respectful in this chat. I can answer questions about {customer_name}.",
+        "I can't continue if the messages stay rude. How can I help with {customer_name}?",
+        "Respectful conversation only, please. I'm here to answer questions about {customer_name}."
+      ]
+    },
+    "fallback_apology": {
+      "patterns": [],
+      "replies": [
+        "Sorry, I can't answer that right now.",
+        "I'm sorry, I'm not able to help with that at the moment.",
+        "Apologies, something went wrong on my side.",
+        "Sorry about that. I couldn't get you an answer just now.",
+        "I'm sorry, I'm having trouble right now.",
+        "Apologies, I can't give you a reliable answer to that.",
+        "Sorry, I wasn't able to answer that.",
+        "I'm sorry, I can't help with that right now.",
+        "Sorry for the trouble, I couldn't complete that.",
+        "Apologies, I'm unable to answer that at the moment."
+      ]
+    }
+  }
+}
